@@ -2,7 +2,6 @@
 """CLI entry: Generate V3 RGB QR canvases (raw binary payload)."""
 
 import sys
-sys.path.insert(0, "..")
 
 from qrcast.v3.generator_bin import generate_qrgb_bin_images
 

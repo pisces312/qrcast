@@ -2,7 +2,6 @@
 """CLI entry: Generic B&W QR verifier (V1 & V2 compatible, whole-image decode)."""
 
 import sys
-sys.path.insert(0, "..")
 
 from qrcast.bw.verifier import verify
 

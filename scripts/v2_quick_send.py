@@ -2,7 +2,6 @@
 """CLI entry: Quick single-file QR sender (small files, V2 ver40)."""
 
 import sys
-sys.path.insert(0, "..")
 
 from qrcast.bw.v2.quick_sender import send_file
 

@@ -2,7 +2,6 @@
 """CLI entry: Test camera image capture."""
 
 import sys
-sys.path.insert(0, "..")
 
 from qrcast.camera_test import main
 

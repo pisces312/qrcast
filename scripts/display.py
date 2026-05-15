@@ -5,7 +5,6 @@ Works with both B&W and RGB QR canvases.
 """
 
 import sys
-sys.path.insert(0, "..")
 
 from qrcast.common import display_canvases
 

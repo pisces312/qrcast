@@ -2,7 +2,6 @@
 """CLI entry: Generate V1 B&W QR code canvases (fixed ver 32)."""
 
 import sys
-sys.path.insert(0, "..")
 
 from qrcast.bw.v1.generator import generate_qr_images
 

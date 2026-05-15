@@ -2,7 +2,6 @@
 """CLI entry: V3 RGB QR verifier (base64 text payload)."""
 
 import sys
-sys.path.insert(0, "..")
 
 from qrcast.v3.verifier_text import verify_qrgb
 

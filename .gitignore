@@ -26,11 +26,12 @@ ENV/
 env/
 
 # IDE
-.vscode/
+#.vscode/
 .idea/
 *.swp
 *.swo
 *~
+.workbuddy
 
 # OS
 .DS_Store
@@ -51,5 +52,3 @@ legacy/
 
 # Misc
 *.log
-
-.workbuddy

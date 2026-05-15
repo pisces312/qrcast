@@ -6,41 +6,71 @@ File transfer via QR codes. No network required — just light.
 
 ---
 
-## Overview
+## Installation
 
-qrcast encodes files into a sequence of QR code canvases displayed on screen. A receiver (another computer, phone, or camera) captures these images and reconstructs the original file.
+### Quick install (recommended)
 
-This is useful when:
-- You have no network between two devices
-- Air-gapped environments
-- Quick one-way data transfer across screens
+```bash
+pip install qrcast
+# V3 (RGB QR) needs extra dependency:
+pip install qrcast[full]
+```
+
+### From source
+
+```bash
+git clone https://github.com/pisces312/qrcast.git
+cd qrcast
+pip install -e .
+# V3 support:
+pip install -e ".[full]"
+```
+
+### Legacy: Conda
+
+```bash
+conda env create -f env.yml
+conda activate qrcast_env
+```
+
+---
+
+## CLI Usage
+
+After install, the `qrcast` command is available:
+
+```bash
+qrcast --help
+qrcast generate --help
+qrcast generate v1 --help
+```
+
+---
 
 ## Three Versions
 
 | Version | Name | Description | Data/QR | QR/Canvas | Bytes/Canvas |
 |---------|------|-------------|---------|-----------|-------------|
-| **V1** | B&W Fixed | Fixed QR ver 32, grid-based decode | ~1,857 B | 66 (6x11) | ~122 KB |
+| **V1** | B&W Fixed | Fixed QR ver 32, grid-based decode | ~1,857 B | 8 (2x4) | ~15 KB |
 | **V2** | B&W Configurable | Configurable ver 1-40, auto capacity | varies | varies | varies |
 | **V3** | RGB QR | 3 color channels (R/G/B) for ~3x density | ~6,983 B | 3 (1x3) | ~21 KB |
 
 ### V1 — B&W Fixed (固定版本)
 
-The original implementation. Uses QR version 32 with `ERROR_CORRECT_L`, fixed at 66 QR codes per 1850x1000 canvas.
+The original implementation. Uses QR version 32 with `ERROR_CORRECT_L`, fixed at 8 QR codes per 1850x1000 canvas.
 
 ```bash
 # Generate
-python scripts/v1_generate.py <file> --output-dir ./tmp
+qrcast generate v1 <file> --output-dir ./tmp
 
 # Display
-python scripts/display.py ./tmp
+qrcast display ./tmp
 
 # Receive (camera)
-python -m qrcast.bw.receiver --camera 0
+qrcast receive --camera 0 --version v1
 
 # Verify (without camera)
-python scripts/v2_verify.py ./tmp ./verify_output
-# or use grid-based verifier:
-python scripts/v1_verify_grid.py ./tmp ./verify_output
+qrcast verify ./tmp ./verify_output --version v1
 ```
 
 ### V2 — B&W Configurable (可配置版本)
@@ -49,14 +79,14 @@ Adds a `--ver` parameter to control QR version (1-40). Automatically calculates 
 
 ```bash
 # Generate with custom version
-python scripts/v2_generate.py <file> --ver 20 --output-dir ./tmp
+qrcast generate v2 <file> --ver 20 --output-dir ./tmp
 
 # Quick send (single QR, small files only)
-python scripts/v2_quick_send.py <small_file> --minify
+qrcast quick-send <small_file> --minify
 
 # Receive and verify — same as V1
-python -m qrcast.bw.receiver --camera 0
-python scripts/v2_verify.py ./tmp ./verify_output
+qrcast receive --camera 0 --version v2
+qrcast verify ./tmp ./verify_output --version v2
 ```
 
 ### V3 — RGB QR (彩色二维码)
@@ -64,46 +94,34 @@ python scripts/v2_verify.py ./tmp ./verify_output
 Uses the [qrgb](https://pypi.org/project/qrgb/) library to encode data across R/G/B color channels, achieving ~3x data density per QR code.
 
 Two sub-modes:
+- **Binary (bin)**: Direct binary payload, no base64 overhead (~33% more efficient, **recommended**)
 - **Text (base64)**: Encodes chunk as `SEQ:TOTAL:base64data` text payload
-- **Binary (raw)**: Direct binary payload, no base64 overhead (~33% more efficient)
 
 ```bash
-# Generate RGB QR (text mode)
-python scripts/v3_generate_text.py <file> --output-dir ./tmp
-
 # Generate RGB QR (binary mode — recommended)
-python scripts/v3_generate_bin.py <file> --output-dir ./tmp
+qrcast generate v3 <file> --output-dir ./tmp --v3-mode bin
+
+# Generate RGB QR (text mode)
+qrcast generate v3 <file> --output-dir ./tmp --v3-mode text
 
 # Display (same displayer works)
-python scripts/display.py ./tmp
-
-# Receive (text mode)
-python -m qrcast.v3.receiver_text --camera 0
+qrcast display ./tmp
 
 # Receive (binary mode)
-python -m qrcast.v3.receiver_bin --camera 0
+qrcast receive --camera 0 --version v3 --v3-mode bin
 
-# Verify (text mode)
-python scripts/v3_verify_text.py ./tmp ./verify_output
+# Receive (text mode)
+qrcast receive --camera 0 --version v3 --v3-mode text
 
 # Verify (binary mode)
-python scripts/v3_verify_bin.py ./tmp ./verify_output
+qrcast verify ./tmp ./verify_output --version v3 --v3-mode bin
+
+# Verify (text mode)
+qrcast verify ./tmp ./verify_output --version v3 --v3-mode text
 ```
 
-## Installation
+Requires `qrgb` (installed automatically with `pip install qrcast[full]`).
 
-### Option A: Conda
-
-```bash
-conda env create -f env.yml
-conda activate qrcast_env
-```
-
-### Option B: pip
-
-```bash
-pip install -r requirements.txt
-```
 
 ## Project Structure
 
@@ -111,10 +129,12 @@ pip install -r requirements.txt
 qrcast/
 ├── qrcast/                 # Python package
 │   ├── __init__.py
-│   ├── common.py           # Shared utilities (display, compression, payload)
-│   ├── pyminify.py         # Python code minifier (for quick sender)
-│   ├── camera_test.py      # Camera diagnostics
-│   ├── bw/                 # Black-and-white QR (V1 & V2)
+│   ├── __main__.py        # `python -m qrcast` entry
+│   ├── cli.py             # Unified CLI (qrcast command)
+│   ├── common.py          # Shared utilities (display, compression, payload)
+│   ├── pyminify.py       # Python code minifier (for quick sender)
+│   ├── camera_test.py     # Camera diagnostics
+│   ├── bw/                # Black-and-white QR (V1 & V2)
 │   │   ├── __init__.py
 │   │   ├── receiver.py         # B&W QR receiver (V1 & V2)
 │   │   ├── verifier.py         # B&W QR verifier (whole-image, V1 & V2)
@@ -131,7 +151,7 @@ qrcast/
 │       ├── receiver_bin.py     # RGB QR receiver (raw binary)
 │       ├── verifier_text.py    # RGB QR verifier (base64)
 │       └── verifier_bin.py     # RGB QR verifier (raw binary)
-├── scripts/                # CLI entry points
+├── scripts/                # Legacy CLI entry points (deprecated, use `qrcast` CLI)
 │   ├── v1_generate.py
 │   ├── v1_verify_grid.py
 │   ├── v2_generate.py
@@ -148,6 +168,7 @@ qrcast/
 │   ├── v1_bw_fixed.md
 │   ├── v2_bw_configurable.md
 │   └── v3_rgb_qr.md
+├── pyproject.toml          # Package metadata (pip install)
 ├── env.yml
 ├── requirements.txt
 ├── LICENSE

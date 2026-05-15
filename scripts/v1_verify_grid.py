@@ -2,7 +2,6 @@
 """CLI entry: V1 grid-based verifier (fixed ver 32 layout)."""
 
 import sys
-sys.path.insert(0, "..")
 
 from qrcast.bw.v1.verifier_grid import verify_qr_codes
 

@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qrcast"
+version = "1.0.0"
+description = "File transfer via QR codes. No network required — just light."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+authors = [
+    {name = "pisces312"},
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Communications :: File Sharing",
+    "Topic :: Multimedia :: Graphics",
+]
+dependencies = [
+    "qrcode>=8.0",
+    "pillow>=10.0",
+    "py7zr>=1.0",
+    "numpy>=2.0",
+    "opencv-python>=4.10",
+    "zxing-cpp>=2.3",
+]
+
+[project.optional-dependencies]
+v3 = ["qrgb>=1.0"]
+full = ["qrgb>=1.0", "pyzbar>=0.1.9", "qreader>=3.0"]
+
+[project.scripts]
+qrcast = "qrcast.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/pisces312/qrcast"
+Repository = "https://github.com/pisces312/qrcast"
+
+[tool.setuptools.packages.find]
+include = ["qrcast*"]
