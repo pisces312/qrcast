@@ -1,0 +1,18 @@
+# Core dependencies
+qrcode>=8.0
+pillow>=10.0
+py7zr>=1.0
+numpy>=2.0
+opencv-python>=4.10
+
+# QR decoding (used by receivers and verifiers)
+zxing-cpp>=2.3
+
+# Optional: pyzbar fallback
+pyzbar>=0.1.9
+
+# Optional: qreader (alternative QR decoder)
+qreader>=3.0
+
+# V3 RGB QR generation (required for v3/)
+qrgb>=1.0
