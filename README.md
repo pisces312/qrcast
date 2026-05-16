@@ -1,4 +1,4 @@
-# QR传文件 (QRCast Android)
+# 码上通 (QRCast Android)
 
 通过二维码在设备间离线传输小文件的 Android 应用。
 
