@@ -151,18 +151,6 @@ qrcast/
 │       ├── receiver_bin.py     # RGB QR receiver (raw binary)
 │       ├── verifier_text.py    # RGB QR verifier (base64)
 │       └── verifier_bin.py     # RGB QR verifier (raw binary)
-├── scripts/                # Legacy CLI entry points (deprecated, use `qrcast` CLI)
-│   ├── v1_generate.py
-│   ├── v1_verify_grid.py
-│   ├── v2_generate.py
-│   ├── v2_quick_send.py
-│   ├── v2_verify.py
-│   ├── v3_generate_text.py
-│   ├── v3_generate_bin.py
-│   ├── v3_verify_text.py
-│   ├── v3_verify_bin.py
-│   ├── display.py
-│   └── test_camera.py
 ├── docs/                   # Documentation
 │   ├── architecture.md
 │   ├── v1_bw_fixed.md

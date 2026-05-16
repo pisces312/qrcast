@@ -60,7 +60,7 @@ class QRConfig:
 Exposes all parameters via command line:
 
 ```bash
-python scripts/v2_generate.py <file> --ver 20 --output-dir ./tmp --compress --save-chunks
+python -m qrcast.bw.v2.generator <file> --ver 20 --output-dir ./tmp --compress --save-chunks
 ```
 
 ## Capacity Reference
@@ -80,10 +80,10 @@ The total throughput per canvas is **not monotonic** with version — a mid-rang
 
 ## Quick Sender
 
-A companion tool for sending small files (< 2,953 bytes) via a single QR code:
+A companion tool for sending small files via a single QR code:
 
 ```bash
-python scripts/v2_quick_send.py myscript.py --minify
+python -m qrcast.bw.v2.quick_sender myscript.py --minify --ver 40
 ```
 
 The `--minify` flag strips comments and docstrings from Python files before encoding, often reducing size by 30-50%.
@@ -94,9 +94,7 @@ The `--minify` flag strips comments and docstrings from Python files before enco
 |------|------|---------|
 | Generator | `qrcast/bw/v2/generator.py` | Configurable version generator |
 | Quick Sender | `qrcast/bw/v2/quick_sender.py` | Single-QR sender for small files |
-| CLI Generate | `scripts/v2_generate.py` | Entry point for generation |
-| CLI Quick Send | `scripts/v2_quick_send.py` | Entry point for quick sender |
-| CLI Verify | `scripts/v2_verify.py` | Entry point for verification |
+| Verifier | `qrcast/bw/verifier.py` | Whole-image verifier (V1 & V2 compatible) |
 
 ## Differences from V1
 

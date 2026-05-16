@@ -185,8 +185,13 @@ def verify(base_dir, output_dir):
 
 
 if __name__ == "__main__":
-    base_dir = sys.argv[1] if len(sys.argv) > 1 else "./tmp"
-    output_dir = sys.argv[2] if len(sys.argv) > 2 else "./tmp/verify_output"
+    import argparse
+    parser = argparse.ArgumentParser(description="Generic B&W QR verifier (whole-image decode)")
+    parser.add_argument("input_dir", nargs="?", default="./tmp", help="Input directory")
+    parser.add_argument("output_dir", nargs="?", default="./tmp/verify_output", help="Output directory")
+    args = parser.parse_args()
+    base_dir = args.input_dir
+    output_dir = args.output_dir
 
     print("=" * 50)
     print("QRCast Verifier - Whole Image Decode")

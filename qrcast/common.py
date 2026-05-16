@@ -105,3 +105,14 @@ def parse_payload(data_bytes):
     total = int.from_bytes(data_bytes[4:8], "big", signed=False)
     payload = data_bytes[8:]
     return seq, total, payload
+
+
+if __name__ == "__main__":
+    import argparse
+    import os
+    parser = argparse.ArgumentParser(description="Display QR canvas images via OpenCV fullscreen window")
+    parser.add_argument("image_dir", nargs="?", default="./tmp", help="Directory containing canvas images")
+    parser.add_argument("-i", "--interval", type=float, default=2, help="Display interval in seconds (default: 2)")
+    parser.add_argument("-p", "--pattern", default="qrcode_*.png", help="Glob pattern for canvas files")
+    args = parser.parse_args()
+    display_canvases(args.image_dir, display_sec=args.interval, pattern=args.pattern)

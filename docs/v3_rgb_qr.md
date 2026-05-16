@@ -101,25 +101,21 @@ qr_per_canvas = 1 * 3 = 3
 | Binary Receiver | `qrcast/v3/receiver_bin.py` | Camera receiver (raw binary) |
 | Text Verifier | `qrcast/v3/verifier_text.py` | Offline verifier (base64) |
 | Binary Verifier | `qrcast/v3/verifier_bin.py` | Offline verifier (raw binary) |
-| CLI Gen Text | `scripts/v3_generate_text.py` | Entry point |
-| CLI Gen Binary | `scripts/v3_generate_bin.py` | Entry point |
-| CLI Verify Text | `scripts/v3_verify_text.py` | Entry point |
-| CLI Verify Binary | `scripts/v3_verify_bin.py` | Entry point |
 
 ## Usage
 
 ```bash
 # Generate RGB QR (binary mode — recommended)
-python scripts/v3_generate_bin.py myfile.zip --output-dir ./tmp
+python -m qrcast.v3.generator_bin myfile.zip --output-dir ./tmp
 
 # Display
-python scripts/display.py ./tmp --interval 3
+python -m qrcast.common ./tmp --interval 3
 
 # Receive via camera (binary mode)
 python -m qrcast.v3.receiver_bin --camera 0
 
 # Verify saved images (binary mode)
-python scripts/v3_verify_bin.py ./tmp ./verify_output
+python -m qrcast.v3.verifier_bin ./tmp ./verify_output
 ```
 
 ## Comparison with B&W

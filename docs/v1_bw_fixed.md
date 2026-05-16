@@ -36,26 +36,24 @@ qr_per_canvas = 6 * 11 = 66
 |------|------|---------|
 | Generator | `qrcast/bw/v1/generator.py` | Create QR canvases from file |
 | Grid Verifier | `qrcast/bw/v1/verifier_grid.py` | Decode using known grid dimensions |
-| CLI Generate | `scripts/v1_generate.py` | Entry point for generation |
-| CLI Verify Grid | `scripts/v1_verify_grid.py` | Entry point for grid verification |
 
 ## Usage
 
 ```bash
 # Generate QR canvases
-python scripts/v1_generate.py myfile.zip --output-dir ./tmp --compress
+python -m qrcast.bw.v1.generator myfile.zip --output-dir ./tmp --compress
 
 # Display on screen
-python scripts/display.py ./tmp --interval 3
+python -m qrcast.common ./tmp --interval 3
 
 # Receive via camera (generic receiver)
 python -m qrcast.bw.receiver --camera 0
 
 # Verify saved images (whole-image)
-python scripts/v2_verify.py ./tmp ./verify_output
+python -m qrcast.bw.verifier ./tmp ./verify_output
 
 # Verify saved images (grid-based, V1 original)
-python scripts/v1_verify_grid.py ./tmp ./verify_output
+python -m qrcast.bw.v1.verifier_grid ./tmp ./verify_output
 ```
 
 ## Why Grid-Based Verifier?

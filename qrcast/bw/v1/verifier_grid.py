@@ -173,9 +173,13 @@ def verify_qr_codes(base_dir, output_dir="./verify_output", compress=False):
 
 
 if __name__ == "__main__":
-    import sys
-    base_dir = sys.argv[1] if len(sys.argv) > 1 else "./tmp"
-    output_dir = sys.argv[2] if len(sys.argv) > 2 else "./verify_output"
+    import argparse
+    parser = argparse.ArgumentParser(description="V1 grid-based QR verifier")
+    parser.add_argument("input_dir", nargs="?", default="./tmp", help="Input directory")
+    parser.add_argument("output_dir", nargs="?", default="./verify_output", help="Output directory")
+    args = parser.parse_args()
+    base_dir = args.input_dir
+    output_dir = args.output_dir
 
     print("=" * 50)
     print("QRCast V1 Grid-based Verifier")

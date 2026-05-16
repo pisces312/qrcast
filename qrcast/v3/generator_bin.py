@@ -156,9 +156,9 @@ def generate_qrgb_bin_images(file_path, base_dir="./tmp"):
 
 
 if __name__ == "__main__":
-    file_path = sys.argv[1] if len(sys.argv) > 1 else None
-    if not file_path:
-        print("Usage: python -m qrcast.v3.generator_bin <file_path> [output_dir]")
-        sys.exit(1)
-    output_dir = sys.argv[2] if len(sys.argv) > 2 else "./tmp"
-    generate_qrgb_bin_images(file_path, base_dir=output_dir)
+    import argparse
+    parser = argparse.ArgumentParser(description="Generate V3 RGB QR code canvases (raw binary)")
+    parser.add_argument("file_path", help="Path to file to encode")
+    parser.add_argument("--output-dir", default="./tmp", help="Output directory")
+    args = parser.parse_args()
+    generate_qrgb_bin_images(args.file_path, base_dir=args.output_dir)
