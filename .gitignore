@@ -1,0 +1,45 @@
+# Flutter
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+flutter_*.png
+*.lock
+pubspec.lock
+
+# Dart
+.dart_tool/
+.packages
+.pub/
+
+# Build output
+build/
+.gradle/
+.kotlin/
+.workbuddy/
+*.apk
+*.aab
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+Thumbs.db
+
+# Local configuration ( secrets, api keys, etc.)
+.env
+.env.*
+*.env
+local.properties
+
+# Log files
+*.log
+debug.log
+
+# OS
+.DS_Store
+Thumbs.db

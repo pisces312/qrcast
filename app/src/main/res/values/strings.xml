@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">QR传文件</string>
+    <string name="select_source">选择二维码来源</string>
+    <string name="scan_camera">相机扫码</string>
+    <string name="scan_gallery">图库选图</string>
+    <string name="view_logs">查看日志</string>
+    <string name="title_logs">调试日志</string>
+    <string name="copy_logs">复制</string>
+    <string name="share_logs">分享</string>
+    <string name="clear_logs">清除</string>
+    <string name="logs_copied">日志已复制</string>
+    <string name="logs_cleared">日志已清除</string>
+    <string name="clear_logs_title">清除日志</string>
+    <string name="clear_logs_confirm">确定要清除所有日志吗？</string>
+    <string name="yes">确定</string>
+    <string name="no">取消</string>
+    <string name="scroll_to_bottom">滚到底部</string>
+</resources>

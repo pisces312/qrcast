@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# QRCast Build Script
+# Usage: ./build.sh [debug|release] [--no-minify]
+#   (default: release)
+
+set -e
+
+BUILD_TYPE="${1:-release}"
+NO_MINIFY=false
+
+# Parse optional flags
+for arg in "$@"; do
+    case "$arg" in
+        --no-minify) NO_MINIFY=true ;;
+    esac
+done
+
+PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_DIR="$PROJECT_DIR/app"
+BUILD_TOOLS="D:/nili/dev/android_sdk/build-tools/34.0.0"
+KEYSTORE="D:/nili/my-git-projects/my-backup/backup-settings/my-android-release.keystore"
+KEYSTORE_PASS="${KEY_STORE_PASSWORD:-}"
+KEY_ALIAS="${KEY_ALIAS:-pisces312}"
+
+# Auto-detect version from build.gradle.kts
+VERSION=""
+GRADLE_FILE="$APP_DIR/build.gradle.kts"
+if [[ -f "$GRADLE_FILE" ]]; then
+    VERSION=$(grep 'versionName' "$GRADLE_FILE" | head -1 | sed 's/.*versionName *= *"\([^"]*\)".*/\1/')
+fi
+if [[ -z "$VERSION" ]]; then
+    VERSION="1.0.0"
+fi
+VERSION="v$VERSION"
+
+# Validate BUILD_TYPE
+case "$BUILD_TYPE" in
+    debug|release) ;;
+    *) echo "Usage: $0 [debug|release] [--no-minify]"; exit 1 ;;
+esac
+
+BUILD_TYPE_CAP="$(echo "$BUILD_TYPE" | sed 's/\b./\u&/')"
+GRADLE_TASK="assemble${BUILD_TYPE_CAP}"
+
+echo "=== Building QRCast $VERSION for $BUILD_TYPE ==="
+
+# Validate signing env vars for release
+if [[ "$BUILD_TYPE" == "release" ]]; then
+    if [[ -z "$KEYSTORE_PASS" ]]; then
+        echo "ERROR: KEY_STORE_PASSWORD env var not set"
+        exit 1
+    fi
+fi
+
+# Build
+cd "$PROJECT_DIR"
+GRADLE_ARGS=""
+if [[ "$NO_MINIFY" == true ]]; then
+    GRADLE_ARGS="$GRADLE_ARGS -PenableMinify=false -PenableShrinkResources=false"
+    echo "=== Minify/ShrinkResources disabled ==="
+fi
+./gradlew "$GRADLE_TASK" $GRADLE_ARGS
+
+# Find APK
+BUILD_DIR="$APP_DIR/build/outputs/apk/$BUILD_TYPE"
+UNSIGNED_APK=""
+if [[ "$BUILD_TYPE" == "release" ]]; then
+    UNSIGNED_APK="$BUILD_DIR/app-release-unsigned.apk"
+else
+    UNSIGNED_APK="$BUILD_DIR/app-debug.apk"
+fi
+
+if [[ ! -f "$UNSIGNED_APK" ]]; then
+    echo "ERROR: APK not found at $UNSIGNED_APK"
+    ls "$BUILD_DIR" 2>/dev/null || true
+    exit 1
+fi
+
+# Sign or copy
+SIGNED_APK=""
+if [[ "$BUILD_TYPE" == "release" ]]; then
+    ALIGNED_APK="$BUILD_DIR/app-release-aligned.apk"
+    SIGNED_APK="$PROJECT_DIR/QRCast-${VERSION}-signed.apk"
+
+    echo "=== Aligning ==="
+    "$BUILD_TOOLS/zipalign" -f 4 "$UNSIGNED_APK" "$ALIGNED_APK"
+
+    echo "=== Signing ==="
+    java -jar "$BUILD_TOOLS/lib/apksigner.jar" sign \
+        --ks "$KEYSTORE" \
+        --ks-pass "pass:$KEYSTORE_PASS" \
+        --ks-key-alias "$KEY_ALIAS" \
+        --key-pass "pass:$KEYSTORE_PASS" \
+        --out "$SIGNED_APK" \
+        "$ALIGNED_APK"
+
+    rm -f "$ALIGNED_APK"
+else
+    SIGNED_APK="$PROJECT_DIR/QRCast-${VERSION}-debug.apk"
+    cp -f "$UNSIGNED_APK" "$SIGNED_APK"
+fi
+
+SIZE=$(du -h "$SIGNED_APK" | cut -f1)
+echo "=== Done: $SIGNED_APK ($SIZE) ==="
