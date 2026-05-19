@@ -105,6 +105,20 @@
             "group": "build"
         },
         {
+            "label": "V3 Generate Bin2 (configurable ver)",
+            "type": "shell",
+            "command": "D:\\nili\\dev\\conda_envs\\qrcast_env\\python.exe",
+            "args": [
+                "-m",
+                "qrcast.v3.generator_bin2",
+                "${workspaceFolder}/README.md",
+                "--ver", "32",
+                "--output-dir",
+                "./tmp"
+            ],
+            "group": "build"
+        },
+        {
             "label": "V3 Generate Text",
             "type": "shell",
             "command": "python",
