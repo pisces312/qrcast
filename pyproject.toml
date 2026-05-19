@@ -23,7 +23,7 @@ classifiers = [
     "Topic :: Multimedia :: Graphics",
 ]
 dependencies = [
-    "qrcode>=8.0",
+    "qrcode==8.2",
     "pillow>=10.0",
     "py7zr>=1.0",
     "numpy>=2.0",
