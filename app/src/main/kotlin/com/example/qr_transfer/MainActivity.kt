@@ -35,6 +35,7 @@ import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.Executors
+import java.util.zip.CRC32
 
 class MainActivity : AppCompatActivity() {
 
@@ -323,7 +324,7 @@ class MainActivity : AppCompatActivity() {
         val potentialChunks = mutableListOf<ChunkInfo>()
         for (barcode in barcodes) {
             val raw = barcode.rawBytes ?: continue
-            val chunk = parsePayload(raw) ?: continue
+            val chunk = parsePayloadV2(raw) ?: continue
             potentialChunks.add(chunk)
         }
 
@@ -357,6 +358,15 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread { showReceiving() }
             }
 
+            // seq==0 carries metadata
+            if (chunk.seq == 0) {
+                receiveState.fileName = chunk.fileName
+                receiveState.fileCrc32 = chunk.fileCrc32
+                receiveState.fileSize = chunk.fileSize
+                receiveState.isCompressed = chunk.isCompressed
+                LogCollector.i(TAG, "收到元数据: name=${chunk.fileName}, size=${chunk.fileSize}, compressed=${chunk.isCompressed}")
+            }
+
             receiveState.chunks[chunk.seq] = chunk.payload
             receiveState.receivedCount = receiveState.chunks.size
             hasNewChunk = true
@@ -373,13 +383,45 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun parsePayload(raw: ByteArray): ChunkInfo? {
-        if (raw.size < 8) return null
+    private fun parsePayloadV2(raw: ByteArray): ChunkInfo? {
+        if (raw.size < 12) return null
         val buffer = ByteBuffer.wrap(raw).order(ByteOrder.BIG_ENDIAN)
         val seq = buffer.int
         val total = buffer.int
-        val payload = raw.copyOfRange(8, raw.size)
-        return ChunkInfo(seq, total, payload)
+        val dataLen = buffer.short.toInt() and 0xFFFF
+        val protoVer = buffer.get().toInt() and 0xFF
+        val flags = buffer.get().toInt() and 0xFF
+
+        if (protoVer != 0x02) return null
+        if (dataLen > raw.size - 12) return null
+
+        val dataSegment = raw.copyOfRange(12, 12 + dataLen)
+
+        var fileName: String? = null
+        var fileCrc32: Long? = null
+        var fileSize: Int? = null
+        var payload = dataSegment
+
+        if (seq == 0) {
+            if (dataSegment.isEmpty()) return null
+            val fileNameLen = dataSegment[0].toInt() and 0xFF
+            if (1 + fileNameLen + 8 > dataSegment.size) return null
+            fileName = String(dataSegment, 1, fileNameLen, Charsets.UTF_8)
+            val metaBuf = ByteBuffer.wrap(dataSegment, 1 + fileNameLen, 8).order(ByteOrder.BIG_ENDIAN)
+            fileCrc32 = metaBuf.int.toLong() and 0xFFFFFFFFL
+            fileSize = metaBuf.int
+            payload = dataSegment.copyOfRange(1 + fileNameLen + 8, dataSegment.size)
+        }
+
+        return ChunkInfo(
+            seq = seq,
+            total = total,
+            payload = payload,
+            fileName = fileName,
+            fileCrc32 = fileCrc32,
+            fileSize = fileSize,
+            isCompressed = (flags and 0x01) != 0
+        )
     }
 
     private fun showReceiving() {
@@ -439,13 +481,11 @@ class MainActivity : AppCompatActivity() {
                 val outDir = SettingsActivity.getOutputDir(this@MainActivity)
                 if (!outDir.exists()) outDir.mkdirs()
 
-                var outName = SettingsActivity.generateTimestampFileName("bin")
-                if (data.isNotEmpty()) {
-                    if (data[0].toInt() == 0x37) {
-                        outName = SettingsActivity.generateTimestampFileName("7z")
-                    } else if (data[0].toInt() == 0x50 && data.size > 1 && data[1].toInt() == 0x4B) {
-                        outName = SettingsActivity.generateTimestampFileName("zip")
-                    }
+                // Use filename from metadata if available, otherwise detect by magic bytes
+                val outName = if (!receiveState.fileName.isNullOrEmpty()) {
+                    receiveState.fileName!!
+                } else {
+                    detectExtension(data)
                 }
 
                 val outFile = File(outDir, outName)
@@ -453,6 +493,22 @@ class MainActivity : AppCompatActivity() {
 
                 receiveState.outputPath = outFile.absolutePath
                 receiveState.fileName = outName
+
+                // CRC32 verification
+                val expectedCrc = receiveState.fileCrc32
+                if (expectedCrc != null) {
+                    val crc = CRC32()
+                    crc.update(data)
+                    val actualCrc = crc.value
+                    if (actualCrc != expectedCrc) {
+                        LogCollector.w(TAG, "CRC32 不匹配: expected=$expectedCrc, actual=$actualCrc")
+                        withContext(Dispatchers.Main) {
+                            showError("警告: CRC32 校验失败，文件可能损坏", false)
+                        }
+                        return@withContext
+                    }
+                    LogCollector.i(TAG, "CRC32 校验通过")
+                }
 
                 LogCollector.i(TAG, "文件接收完成: $outName (${formatBytes(data.size)})")
 
@@ -465,6 +521,16 @@ class MainActivity : AppCompatActivity() {
                     showError("文件组装失败: ${e.message}")
                 }
             }
+        }
+    }
+
+    private fun detectExtension(data: ByteArray): String {
+        if (data.isEmpty()) return SettingsActivity.generateTimestampFileName("bin")
+        return when {
+            data[0].toInt() == 0x37 -> SettingsActivity.generateTimestampFileName("7z")
+            data[0].toInt() == 0x50 && data.size > 1 && data[1].toInt() == 0x4B ->
+                SettingsActivity.generateTimestampFileName("zip")
+            else -> SettingsActivity.generateTimestampFileName("bin")
         }
     }
 
@@ -586,6 +652,9 @@ class ReceiveState {
     var outputPath: String? = null
     var outputSize = 0
     var fileName: String? = null
+    var fileCrc32: Long? = null
+    var fileSize: Int? = null
+    var isCompressed: Boolean = false
     var missingChunks = listOf<Int>()
     val chunks = mutableMapOf<Int, ByteArray>()
 
@@ -593,7 +662,15 @@ class ReceiveState {
         get() = totalChunks != null && receivedCount == totalChunks
 }
 
-data class ChunkInfo(val seq: Int, val total: Int, val payload: ByteArray) {
+data class ChunkInfo(
+    val seq: Int,
+    val total: Int,
+    val payload: ByteArray,
+    val fileName: String? = null,
+    val fileCrc32: Long? = null,
+    val fileSize: Int? = null,
+    val isCompressed: Boolean = false
+) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is ChunkInfo) return false
