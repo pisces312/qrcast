@@ -13,6 +13,42 @@ import os
 import cv2
 import py7zr
 
+# ===================== qrcode library bug fix =====================
+# qrcode >=8.2 has a bug where Polynomial.__mod__ doesn't handle leading
+# zero coefficients in Reed-Solomon encoding, causing ValueError: glog(0)
+# when encoding certain binary data patterns. This patch strips leading zeros
+# before the Galois field division, which is the mathematically correct behavior.
+try:
+    from qrcode import base as _qrcode_base
+
+    _orig_mod = _qrcode_base.Polynomial.__mod__
+
+    def _patched_mod(self, other):
+        num = self.num[:]
+        while len(num) > 0 and num[0] == 0:
+            num.pop(0)
+        if len(num) == 0:
+            return _qrcode_base.Polynomial([0], 0)
+        if len(num) < len(other):
+            return _qrcode_base.Polynomial(num, 0)
+        self = _qrcode_base.Polynomial(num, 0)
+
+        difference = len(self) - len(other)
+        if difference < 0:
+            return self
+        ratio = _qrcode_base.glog(self[0]) - _qrcode_base.glog(other[0])
+        new_num = [
+            item ^ _qrcode_base.gexp(_qrcode_base.glog(other_item) + ratio)
+            for item, other_item in zip(self, other)
+        ]
+        if difference:
+            new_num.extend(self[-difference:])
+        return _qrcode_base.Polynomial(new_num, 0) % other
+
+    _qrcode_base.Polynomial.__mod__ = _patched_mod
+except Exception:
+    pass  # If qrcode isn't installed or API changes, ignore silently
+
 # ===================== Shared Constants =====================
 CANVAS_W = 1850
 CANVAS_H = 1000

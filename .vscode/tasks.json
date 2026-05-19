@@ -1,0 +1,156 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "V1 Generate (README.md → QR canvases)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "-m",
+                "qrcast.bw.v1.generator",
+                "${workspaceFolder}/README.md",
+                "--output-dir",
+                "./tmp"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "V1 Generate with compress",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "-m",
+                "qrcast.bw.v1.generator",
+                "${workspaceFolder}/README.md",
+                "--output-dir",
+                "./tmp",
+                "--compress"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "V1 Verify Grid",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "-m",
+                "qrcast.bw.v1.verifier_grid",
+                "./tmp",
+                "./verify_output"
+            ],
+            "group": "test"
+        },
+        {
+            "label": "V2 Generate (README.md → QR canvases)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "-m",
+                "qrcast.bw.v2.generator",
+                "${workspaceFolder}/README.md",
+                "--output-dir",
+                "./tmp"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "V2 Generate with compress",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "-m",
+                "qrcast.bw.v2.generator",
+                "${workspaceFolder}/README.md",
+                "--output-dir",
+                "./tmp",
+                "--compress"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "V2 Quick Send (env.yml → single QR)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "-m",
+                "qrcast.bw.v2.quick_sender",
+                "${workspaceFolder}/env.yml",
+                "--ver", "20"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "V2 Verify",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "-m",
+                "qrcast.bw.verifier",
+                "./tmp",
+                "./tmp/verify_output"
+            ],
+            "group": "test"
+        },
+        {
+            "label": "V3 Generate Bin",
+            "type": "shell",
+            "command": "D:\\nili\\dev\\conda_envs\\qrcast_env\\python.exe",
+            "args": [
+                "-m",
+                "qrcast.v3.generator_bin",
+                "C:\\nili\\dev\\git\\bin\\bash.exe",
+                "--output-dir",
+                "./tmp"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "V3 Generate Text",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "-m",
+                "qrcast.v3.generator_text",
+                "${workspaceFolder}/README.md",
+                "--output-dir",
+                "./tmp"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "V3 Verify Bin",
+            "type": "shell",
+            "command": "D:\\nili\\dev\\conda_envs\\qrcast_env\\python.exe",
+            "args": [
+                "-m",
+                "qrcast.v3.verifier_bin",
+                "./tmp",
+                "./tmp/qrgb_bin_verify_output"
+            ],
+            "group": "test"
+        },
+        {
+            "label": "V3 Verify Text",
+            "type": "shell",
+            "command": "D:\\nili\\dev\\conda_envs\\qrcast_env\\python.exe",
+            "args": [
+                "-m",
+                "qrcast.v3.verifier_text",
+                "./tmp",
+                "./tmp/qrgb_verify_output"
+            ],
+            "group": "test"
+        },
+        {
+            "label": "Display QR Canvases",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "-m",
+                "qrcast.common",
+                "./tmp"
+            ],
+            "group": "build"
+        }
+    ]
+}
