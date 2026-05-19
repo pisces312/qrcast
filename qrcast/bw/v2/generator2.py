@@ -1,17 +1,7 @@
-"""V3 RGB QR code generator v2 (configurable version 1-40).
+"""V2 B&W QR code generator v2 (configurable version 1-40).
 
-File -> optional 7z compress -> chunk -> raw binary into 3 QR channels -> RGB canvases (PNG).
-
-Uses qrgb's color rendering to encode raw bytes into 3 color channels (R, G, B).
-Each channel carries raw binary via QR byte mode — no base64 overhead.
-
-Payload format v2:
-  Fixed Header (12B): [seq(4B)][total(4B)][data_len(2B)][proto_ver(1B)][flags(1B)]
-  Data Segment:
-    - seq==0: [filename_len(1B)][filename(N B)][file_crc32(4B)][file_size(4B)][chunk_data(M B)]
-    - seq>0:  [chunk_data(M B)]
-
-proto_ver = 0x02, flags bit0 = 7z compressed.
+File -> optional 7z compression -> chunk -> encode QR codes -> save grid canvases as PNG.
+Payload format v2 with filename + CRC32 support.
 """
 
 import argparse
@@ -21,18 +11,21 @@ import zlib
 
 import numpy as np
 from PIL import Image
-from qrcode.constants import ERROR_CORRECT_M
+from qrcode.base import rs_blocks
+from qrcode.constants import ERROR_CORRECT_L
 from qrcode.main import QRCode
 
 from qrcast.common import CANVAS_W, CANVAS_H, BOX_SIZE, BORDER, file_to_7z_bytes
 
-# qrgb is required for generation
-try:
-    from qrgb.qrgb import render_color, QR_CAPACITIES
-except ImportError as e:
-    raise ImportError("qrgb library is required for V3 generation. Install: pip install qrgb") from e
+ERROR_L = ERROR_CORRECT_L
 
-ERROR_M = ERROR_CORRECT_M
+
+def calc_qr_max_bytes(ver, error_correction=ERROR_L):
+    """Calculate the max byte-mode payload capacity for a given QR version."""
+    blocks = rs_blocks(ver, error_correction)
+    total_data_codewords = sum(b.data_count for b in blocks)
+    header_bits = 4 + (8 if ver <= 9 else 16)
+    return (total_data_codewords * 8 - header_bits) // 8
 
 
 class QRConfig:
@@ -41,75 +34,43 @@ class QRConfig:
     def __init__(self, ver=20):
         if not 1 <= ver <= 40:
             raise ValueError(f"QR version must be 1-40, got {ver}")
-        if ver not in QR_CAPACITIES:
-            raise ValueError(f"QR version {ver} not supported by qrgb (available: {list(QR_CAPACITIES.keys())})")
         self.ver = ver
-        self.channel_capacity = QR_CAPACITIES[ver]
-        self.cell_size = (4 * ver + 17) * BOX_SIZE + 2 * BORDER * BOX_SIZE
-        self.rows = math.floor(CANVAS_H / self.cell_size)
-        self.cols = math.floor(CANVAS_W / self.cell_size)
+        self.qr_max_bytes = calc_qr_max_bytes(ver)
+        self.rows = math.floor(CANVAS_H / ((4 * ver + 17) * BOX_SIZE + 24))
+        self.cols = math.floor(CANVAS_W / ((4 * ver + 17) * BOX_SIZE + 24))
         self.qr_per_image = self.rows * self.cols
         self.header_len = 12  # seq(4) + total(4) + data_len(2) + proto_ver(1) + flags(1)
-        self.data_per_qr = self.channel_capacity * 3 - self.header_len
+        self.data_per_qr = self.qr_max_bytes - self.header_len
 
     def print_config(self):
         print(f"QR version: {self.ver}")
-        print(f"CELL_SIZE: {self.cell_size}, ROWS: {self.rows}, COLS: {self.cols}, QR_PER_IMAGE: {self.qr_per_image}")
-        print(f"CHANNEL_CAPACITY: {self.channel_capacity}, DATA_PER_QR: {self.data_per_qr}")
+        print(f"rows: {self.rows}, cols: {self.cols}, QR_PER_IMAGE: {self.qr_per_image}")
+        print(f"QR_MAX_BYTES: {self.qr_max_bytes}, DATA_PER_QR: {self.data_per_qr}")
 
 
-def make_mono_qr(data_bytes, version):
-    """Generate a mono (black/white) QR code image from raw bytes."""
+def make_qr(data_bytes, qr_cfg):
     qr = QRCode(
-        version=version,
-        error_correction=ERROR_M,
+        version=qr_cfg.ver,
+        error_correction=ERROR_L,
         box_size=BOX_SIZE,
         border=BORDER,
     )
     qr.add_data(data_bytes)
     qr.make(fit=True)
-    img = qr.make_image()
-    img = img.convert("L").point(lambda p: 0 if p < 128 else 255)
-    return img
-
-
-def make_rgb_qr_image(payload_bytes, version):
-    """Create an RGB QR code PIL image from raw binary payload."""
-    pad_len = (3 - len(payload_bytes) % 3) % 3
-    padded = payload_bytes + b"\x00" * pad_len
-    chunk_size = len(padded) // 3
-
-    r_data = padded[:chunk_size]
-    g_data = padded[chunk_size:2 * chunk_size]
-    b_data = padded[2 * chunk_size:]
-
-    r_img = make_mono_qr(r_data, version)
-    g_img = make_mono_qr(g_data, version)
-    b_img = make_mono_qr(b_data, version)
-
-    r_arr = np.array(r_img)
-    g_arr = np.array(g_img)
-    b_arr = np.array(b_img)
-
-    height, width = r_arr.shape
-    color_img = np.zeros((height, width, 3), dtype=np.uint8)
-
-    for y in range(height):
-        for x in range(width):
-            color_img[y, x] = render_color(r_arr[y, x], g_arr[y, x], b_arr[y, x])
-
-    print(f"  RGB QR: version={version}, size={width}x{height}, payload={len(payload_bytes)} bytes")
-    return Image.fromarray(color_img)
+    print(f" QR version: {qr.version}, size: {qr.modules_count}x{qr.modules_count}")
+    img = qr.make_image(fill_color="black", back_color="white")
+    return img.convert("RGB")
 
 
 def make_canvas(qr_images, qr_cfg):
-    """Tile RGB QR images into a canvas."""
+    qr_w, qr_h = qr_images[0].size
     canvas = Image.new("RGB", (CANVAS_W, CANVAS_H), "white")
     for idx, img in enumerate(qr_images):
         row = idx // qr_cfg.cols
         col = idx % qr_cfg.cols
-        x = col * qr_cfg.cell_size
-        y = row * qr_cfg.cell_size
+        x = col * qr_w
+        y = row * qr_h
+        print(f"qr_w: {qr_w}, qr_h: {qr_h}, row: {row}, col: {col}, x: {x}, y: {y}")
         canvas.paste(img, (x, y))
     return canvas
 
@@ -122,7 +83,6 @@ def build_payload(seq, total, flags, chunk_data, filename=None, file_crc32=None,
     flags_b = flags.to_bytes(1, "big", signed=False)
 
     if seq == 0:
-        # meta segment: [filename_len(1B)][filename][crc32(4B)][size(4B)][chunk_data]
         filename_bytes = filename.encode("utf-8") if filename else b""
         if len(filename_bytes) > 255:
             filename_bytes = filename_bytes[:255]
@@ -143,7 +103,7 @@ def build_payload(seq, total, flags, chunk_data, filename=None, file_crc32=None,
     return payload
 
 
-def generate_qrgb_bin_images(file_path, ver=20, base_dir="./tmp", compress=False):
+def generate_qr_images(file_path, ver=20, base_dir="./tmp", compress=False, save_chunks=False):
     if not os.path.exists(file_path):
         print("File not found!")
         return
@@ -153,7 +113,6 @@ def generate_qrgb_bin_images(file_path, ver=20, base_dir="./tmp", compress=False
 
     os.makedirs(base_dir, exist_ok=True)
 
-    # Read original file
     with open(file_path, "rb") as f:
         original_bytes = f.read()
 
@@ -161,22 +120,17 @@ def generate_qrgb_bin_images(file_path, ver=20, base_dir="./tmp", compress=False
     original_crc = zlib.crc32(original_bytes) & 0xFFFFFFFF
     filename = os.path.basename(file_path)
 
-    # Optional 7z compression
     if compress:
         file_bytes = file_to_7z_bytes(file_path)
     else:
         file_bytes = original_bytes
 
-    # Chunk size for seq>0
     data_per_qr = qr_cfg.data_per_qr
-
-    # seq=0 meta overhead: filename_len(1) + filename(N) + crc32(4) + file_size(4)
     filename_bytes = filename.encode("utf-8")
     if len(filename_bytes) > 255:
         filename_bytes = filename_bytes[:255]
     meta_overhead = 1 + len(filename_bytes) + 4 + 4
 
-    # Split file into chunks
     chunks = []
     offset = 0
     seq = 0
@@ -191,7 +145,7 @@ def generate_qrgb_bin_images(file_path, ver=20, base_dir="./tmp", compress=False
         seq += 1
 
     total_chunks = len(chunks)
-    total_images = math.ceil(total_chunks / qr_cfg.qr_per_image)
+    total_images = (total_chunks + qr_cfg.qr_per_image - 1) // qr_cfg.qr_per_image
 
     print(f"{'Compressed' if compress else 'Raw'} total size: {len(file_bytes)} bytes")
     print(f"Original size: {original_size} bytes, CRC32: {original_crc:08X}")
@@ -208,22 +162,26 @@ def generate_qrgb_bin_images(file_path, ver=20, base_dir="./tmp", compress=False
             if chunk_idx >= total_chunks:
                 break
 
-            chunk_data = chunks[chunk_idx]
             payload = build_payload(
                 seq=chunk_idx,
                 total=total_chunks,
                 flags=flags,
-                chunk_data=chunk_data,
+                chunk_data=chunks[chunk_idx],
                 filename=filename if chunk_idx == 0 else None,
                 file_crc32=original_crc if chunk_idx == 0 else None,
                 file_size=original_size if chunk_idx == 0 else None,
             )
 
-            print(f"Chunk {chunk_idx}: {len(chunk_data)} raw bytes, "
-                  f"payload: {len(payload)} bytes (max {qr_cfg.channel_capacity * 3})")
+            print(
+                f"Chunk {chunk_idx}: {len(chunks[chunk_idx])} bytes, payload total: {len(payload)} bytes, max allowed: {qr_cfg.qr_max_bytes}"
+            )
 
-            qr_img = make_rgb_qr_image(payload, qr_cfg.ver)
+            qr_img = make_qr(payload, qr_cfg)
             current_qrs.append(qr_img)
+
+            if save_chunks:
+                qr_debug_path = os.path.join(base_dir, f"qr_chunk_{chunk_idx:04d}.png")
+                qr_img.save(qr_debug_path)
 
         canvas = make_canvas(current_qrs, qr_cfg)
         output_path = os.path.join(base_dir, f"qrcode_{img_idx + 1:03d}.png")
@@ -234,15 +192,18 @@ def generate_qrgb_bin_images(file_path, ver=20, base_dir="./tmp", compress=False
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate V3 RGB QR code canvases v2 (with filename + CRC)")
-    parser.add_argument("file_path", help="Path to file to encode")
+    parser = argparse.ArgumentParser(description="Generate V2 B&W QR code canvases v2 (with filename + CRC)")
+    parser.add_argument("file_path", help="File to encode")
     parser.add_argument("--ver", type=int, default=20, help="QR version (1-40, default: 20)")
     parser.add_argument("--output-dir", default="./tmp", help="Output directory")
     parser.add_argument("--compress", action="store_true", help="Compress with 7z first")
+    parser.add_argument("--save-chunks", action="store_true", help="Save individual QR chunk images")
     args = parser.parse_args()
-    generate_qrgb_bin_images(
+
+    generate_qr_images(
         file_path=args.file_path,
         ver=args.ver,
         base_dir=args.output_dir,
         compress=args.compress,
+        save_chunks=args.save_chunks,
     )
