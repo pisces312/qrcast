@@ -8,9 +8,9 @@ data_len tells decoder exact chunk size so padding from 3-way split can be strip
 Uses zxingcpp .bytes for reliable binary data recovery.
 """
 
+import argparse
 import glob
 import os
-import sys
 
 import cv2
 import numpy as np
@@ -18,11 +18,13 @@ import zxingcpp
 from PIL import Image
 
 # ===================== Grid Config (must match generator) =====================
-MAX_QR_VER = 32
 BOX_SIZE = 3
 BORDER = 4
-CELL_SIZE = (4 * MAX_QR_VER + 17) * BOX_SIZE + 2 * BORDER * BOX_SIZE  # 555
-print(f"CELL_SIZE: {CELL_SIZE}")
+
+
+def calc_cell_size(ver):
+    """Calculate cell size for a given QR version."""
+    return (4 * ver + 17) * BOX_SIZE + 2 * BORDER * BOX_SIZE
 
 R_CHANNEL_COLORS = np.array([(0, 0, 0), (255, 255, 0), (255, 0, 255), (255, 0, 0)])
 G_CHANNEL_COLORS = np.array([(0, 0, 0), (255, 255, 0), (0, 255, 255), (0, 255, 0)])
@@ -90,7 +92,7 @@ def parse_payload(data_bytes):
     return seq, total, payload
 
 
-def decode_canvas(image_path, tolerance=30):
+def decode_canvas(image_path, cell_size, tolerance=30):
     """Decode all RGB QR cells from a canvas image."""
     img = cv2.imread(image_path)
     if img is None:
@@ -100,17 +102,17 @@ def decode_canvas(image_path, tolerance=30):
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     h, w = img_rgb.shape[:2]
 
-    rows = h // CELL_SIZE
-    cols = w // CELL_SIZE
+    rows = h // cell_size
+    cols = w // cell_size
 
     results = []
 
     for row in range(rows):
         for col in range(cols):
-            x_start = col * CELL_SIZE
-            x_end = (col + 1) * CELL_SIZE
-            y_start = row * CELL_SIZE
-            y_end = (row + 1) * CELL_SIZE
+            x_start = col * cell_size
+            x_end = (col + 1) * cell_size
+            y_start = row * cell_size
+            y_end = (row + 1) * cell_size
 
             cell = img_rgb[y_start:y_end, x_start:x_end]
 
@@ -129,8 +131,11 @@ def decode_canvas(image_path, tolerance=30):
     return results
 
 
-def verify_qrgb_bin(base_dir, output_dir, tolerance=30):
+def verify_qrgb_bin(base_dir, output_dir, ver=32, tolerance=30):
     """Verify all RGB QR canvas PNGs and reconstruct the file."""
+    cell_size = calc_cell_size(ver)
+    print(f"CELL_SIZE: {cell_size} (ver={ver})")
+
     received_chunks = {}
     total_chunks = None
 
@@ -143,7 +148,7 @@ def verify_qrgb_bin(base_dir, output_dir, tolerance=30):
 
     for qr_file in qr_files:
         print(f"\n[FILE] Processing: {os.path.basename(qr_file)}")
-        results = decode_canvas(qr_file, tolerance)
+        results = decode_canvas(qr_file, cell_size, tolerance)
 
         if not results:
             print(f"  [!] No RGB QR codes detected")
@@ -200,17 +205,22 @@ def verify_qrgb_bin(base_dir, output_dir, tolerance=30):
 
 
 if __name__ == "__main__":
-    base_dir = sys.argv[1] if len(sys.argv) > 1 else "./tmp"
-    output_dir = sys.argv[2] if len(sys.argv) > 2 else "./tmp/qrgb_bin_verify_output"
+    parser = argparse.ArgumentParser(description="QRCast V3 RGB QR Verifier (raw binary)")
+    parser.add_argument("base_dir", nargs="?", default="./tmp", help="Input directory with qrcode_*.png files")
+    parser.add_argument("output_dir", nargs="?", default="./tmp/qrgb_bin_verify_output", help="Output directory")
+    parser.add_argument("--ver", type=int, default=32, help="QR version used during generation (default: 32)")
+    parser.add_argument("--tolerance", type=int, default=30, help="Color tolerance for channel extraction (default: 30)")
+    args = parser.parse_args()
 
     print("=" * 50)
     print("QRCast V3 RGB QR Verifier (raw binary)")
     print("=" * 50)
-    print(f"Input directory:  {base_dir}")
-    print(f"Output directory: {output_dir}")
+    print(f"Input directory:  {args.base_dir}")
+    print(f"Output directory: {args.output_dir}")
+    print(f"QR version:       {args.ver}")
     print("=" * 50)
 
-    success = verify_qrgb_bin(base_dir, output_dir)
+    success = verify_qrgb_bin(args.base_dir, args.output_dir, ver=args.ver, tolerance=args.tolerance)
 
     print("\n" + "=" * 50)
     if success:

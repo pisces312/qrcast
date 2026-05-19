@@ -111,8 +111,8 @@
             "args": [
                 "-m",
                 "qrcast.v3.generator_bin2",
-                "${workspaceFolder}/README.md",
-                "--ver", "32",
+                "C:\\nili\\dev\\git\\bin\\git.exe",
+                "--ver", "20",
                 "--output-dir",
                 "./tmp"
             ],
@@ -139,7 +139,8 @@
                 "-m",
                 "qrcast.v3.verifier_bin",
                 "./tmp",
-                "./tmp/qrgb_bin_verify_output"
+                "./tmp/qrgb_bin_verify_output",
+                "--ver", "32"
             ],
             "group": "test"
         },
