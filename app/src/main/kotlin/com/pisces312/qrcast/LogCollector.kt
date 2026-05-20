@@ -1,4 +1,4 @@
-package com.example.qr_transfer
+package com.pisces312.qrcast
 
 import android.content.Context
 import android.util.Log
@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
  */
 object LogCollector {
 
-    private const val TAG = "QRTransfer"
+    private const val TAG = "QRCast"
     private const val MAX_MEMORY_LOGS = 500
     private const val MAX_LOG_FILE_SIZE = 1 * 1024 * 1024L // 1MB
     private const val LOG_FILE_NAME = "app_logs.txt"

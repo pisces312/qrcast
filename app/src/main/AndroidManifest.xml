@@ -16,7 +16,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.QRTransfer"
+            android:theme="@style/Theme.QRCast"
             android:configChanges="orientation|screenSize|smallestScreenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
@@ -26,12 +26,12 @@
         <activity
             android:name=".LogActivity"
             android:exported="false"
-            android:theme="@style/Theme.QRTransfer.ActionBar"
+            android:theme="@style/Theme.QRCast.ActionBar"
             android:parentActivityName=".MainActivity" />
         <activity
             android:name=".SettingsActivity"
             android:exported="false"
-            android:theme="@style/Theme.QRTransfer.ActionBar"
+            android:theme="@style/Theme.QRCast.ActionBar"
             android:parentActivityName=".MainActivity" />
         <provider
             android:name="androidx.core.content.FileProvider"

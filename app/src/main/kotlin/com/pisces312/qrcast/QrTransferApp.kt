@@ -1,4 +1,4 @@
-package com.example.qr_transfer
+package com.pisces312.qrcast
 
 import android.app.Application
 

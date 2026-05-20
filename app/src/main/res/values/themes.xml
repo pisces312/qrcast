@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.QRTransfer" parent="Theme.Material3.Dark.NoActionBar">
+    <style name="Theme.QRCast" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">@color/teal_500</item>
         <item name="colorPrimaryDark">@color/teal_700</item>
         <item name="colorAccent">@color/teal_500</item>
@@ -8,7 +8,7 @@
         <item name="android:navigationBarColor">@color/black</item>
     </style>
 
-    <style name="Theme.QRTransfer.ActionBar" parent="Theme.Material3.Dark">
+    <style name="Theme.QRCast.ActionBar" parent="Theme.Material3.Dark">
         <item name="colorPrimary">@color/teal_500</item>
         <item name="colorPrimaryDark">@color/teal_700</item>
         <item name="colorAccent">@color/teal_500</item>

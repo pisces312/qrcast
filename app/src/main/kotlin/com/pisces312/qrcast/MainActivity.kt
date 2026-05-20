@@ -1,4 +1,4 @@
-package com.example.qr_transfer
+package com.pisces312.qrcast
 
 import android.Manifest
 import android.content.Intent
@@ -706,7 +706,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
-        private const val TAG = "QRTransfer"
+        private const val TAG = "QRCast"
     }
 }
 

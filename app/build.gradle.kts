@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.qr_transfer"
+    namespace = "com.pisces312.qrcast"
     compileSdk = 35
     ndkVersion = "27.0.12077973"
 
@@ -18,7 +18,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.qr_transfer"
+        applicationId = "com.pisces312.qrcast"
         minSdk = 21
         targetSdk = 35
         versionCode = 1

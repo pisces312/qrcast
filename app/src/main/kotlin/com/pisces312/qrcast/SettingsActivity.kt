@@ -1,4 +1,4 @@
-package com.example.qr_transfer
+package com.pisces312.qrcast
 
 import android.content.Context
 import android.content.Intent
@@ -124,7 +124,7 @@ class SettingsActivity : AppCompatActivity() {
         const val KEY_OUTPUT_DIR = "output_directory"
 
         fun getDefaultOutputDir(context: Context): File {
-            return File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "QRTransfer")
+            return File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "QRCast")
         }
 
         fun getOutputDir(context: Context): File {

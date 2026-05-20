@@ -1,4 +1,4 @@
-package com.example.qr_transfer
+package com.pisces312.qrcast
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -80,7 +80,7 @@ class LogActivity : AppCompatActivity() {
     private fun copyLogs() {
         val logs = findViewById<android.widget.TextView>(R.id.logTextView).text.toString()
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(ClipData.newPlainText("QRTransfer Logs", logs))
+        clipboard.setPrimaryClip(ClipData.newPlainText("QRCast Logs", logs))
         Toast.makeText(this, R.string.logs_copied, Toast.LENGTH_SHORT).show()
     }
 
@@ -88,7 +88,7 @@ class LogActivity : AppCompatActivity() {
         val logs = findViewById<android.widget.TextView>(R.id.logTextView).text.toString()
         val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
             type = "text/plain"
-            putExtra(android.content.Intent.EXTRA_SUBJECT, "QRTransfer 日志")
+            putExtra(android.content.Intent.EXTRA_SUBJECT, "QRCast 日志")
             putExtra(android.content.Intent.EXTRA_TEXT, logs)
         }
         startActivity(android.content.Intent.createChooser(shareIntent, getString(R.string.share_logs)))
