@@ -47,35 +47,103 @@
             app:tint="@color/white" />
     </LinearLayout>
 
-    <!-- Mode Selection -->
-    <RadioGroup
-        android:id="@+id/modeGroup"
+    <!-- QR Type Selection -->
+    <LinearLayout
+        android:id="@+id/qrTypePanel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
-        android:padding="12dp"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="4dp"
         android:background="#1A1A1A"
         app:layout_constraintTop_toBottomOf="@id/toolbar">
 
-        <RadioButton
-            android:id="@+id/rbChunked"
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:checked="true"
-            android:text="分块协议"
-            android:textColor="@color/white"
-            android:buttonTint="@color/teal_500" />
+            android:text="二维码类型"
+            android:textColor="#888888"
+            android:textSize="12sp" />
 
-        <RadioButton
-            android:id="@+id/rbRaw"
+        <RadioGroup
+            android:id="@+id/qrTypeGroup"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="24dp"
-            android:text="原始数据"
-            android:textColor="@color/white"
-            android:buttonTint="@color/teal_500" />
-    </RadioGroup>
+            android:orientation="horizontal"
+            android:layout_marginStart="12dp">
+
+            <RadioButton
+                android:id="@+id/rbMono"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:checked="true"
+                android:text="黑白二维码"
+                android:textColor="@color/white"
+                android:textSize="13sp"
+                android:buttonTint="@color/teal_500" />
+
+            <RadioButton
+                android:id="@+id/rbRgb"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginStart="16dp"
+                android:text="RGB二维码"
+                android:textColor="@color/white"
+                android:textSize="13sp"
+                android:buttonTint="@color/teal_500" />
+        </RadioGroup>
+    </LinearLayout>
+
+    <!-- Protocol Selection -->
+    <LinearLayout
+        android:id="@+id/protocolPanel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="12dp"
+        android:background="#1A1A1A"
+        app:layout_constraintTop_toBottomOf="@id/qrTypePanel">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="数据模式"
+            android:textColor="#888888"
+            android:textSize="12sp" />
+
+        <RadioGroup
+            android:id="@+id/protocolGroup"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginStart="12dp">
+
+            <RadioButton
+                android:id="@+id/rbChunked"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:checked="true"
+                android:text="分块协议"
+                android:textColor="@color/white"
+                android:textSize="13sp"
+                android:buttonTint="@color/teal_500" />
+
+            <RadioButton
+                android:id="@+id/rbRaw"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginStart="16dp"
+                android:text="原始数据"
+                android:textColor="@color/white"
+                android:textSize="13sp"
+                android:buttonTint="@color/teal_500" />
+        </RadioGroup>
+    </LinearLayout>
 
     <!-- Source Selection Panel -->
     <LinearLayout
@@ -86,7 +154,7 @@
         android:orientation="vertical"
         android:padding="32dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/modeGroup">
+        app:layout_constraintTop_toBottomOf="@id/protocolPanel">
 
         <TextView
             android:layout_width="wrap_content"
@@ -177,7 +245,7 @@
         android:layout_height="0dp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/modeGroup" />
+        app:layout_constraintTop_toBottomOf="@id/protocolPanel" />
 
     <View
         android:id="@+id/scanFrame"
@@ -212,7 +280,7 @@
         android:orientation="horizontal"
         android:paddingHorizontal="16dp"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/modeGroup">
+        app:layout_constraintTop_toBottomOf="@id/protocolPanel">
 
         <TextView
             android:id="@+id/progressText"
@@ -239,6 +307,49 @@
             android:textColor="@color/white"
             android:textSize="14sp"
             android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/detailPanel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#1A1A1A"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/progressOverlay">
+
+        <TextView
+            android:id="@+id/fileInfoText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/fileMetaText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="#888888"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/receivedChunksText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="#5DCAA5"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/missingChunksText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="#F0997B"
+            android:textSize="12sp" />
     </LinearLayout>
 
     <LinearLayout

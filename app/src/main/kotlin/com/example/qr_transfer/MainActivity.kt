@@ -40,7 +40,10 @@ import java.util.zip.CRC32
 class MainActivity : AppCompatActivity() {
 
     private lateinit var toolbar: LinearLayout
-    private lateinit var modeGroup: RadioGroup
+    private lateinit var qrTypeGroup: RadioGroup
+    private lateinit var protocolGroup: RadioGroup
+    private lateinit var rbMono: View
+    private lateinit var rbRgb: View
     private lateinit var rbChunked: View
     private lateinit var rbRaw: View
     private lateinit var sourcePanel: LinearLayout
@@ -51,6 +54,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var progressText: TextView
     private lateinit var progressBar: ProgressBar
     private lateinit var progressPercent: TextView
+    private lateinit var detailPanel: LinearLayout
+    private lateinit var fileInfoText: TextView
+    private lateinit var fileMetaText: TextView
+    private lateinit var receivedChunksText: TextView
+    private lateinit var missingChunksText: TextView
     private lateinit var resultPanel: LinearLayout
     private lateinit var resultFileName: TextView
     private lateinit var resultFileSize: TextView
@@ -69,6 +77,7 @@ class MainActivity : AppCompatActivity() {
     private var lastProcessTime = 0L
     private val throttleMs = 200
     private var currentMode = ScanMode.CHUNKED
+    private var currentQrType = QrType.MONO
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -105,7 +114,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun initViews() {
         toolbar = findViewById(R.id.toolbar)
-        modeGroup = findViewById(R.id.modeGroup)
+        qrTypeGroup = findViewById(R.id.qrTypeGroup)
+        protocolGroup = findViewById(R.id.protocolGroup)
+        rbMono = findViewById(R.id.rbMono)
+        rbRgb = findViewById(R.id.rbRgb)
         rbChunked = findViewById(R.id.rbChunked)
         rbRaw = findViewById(R.id.rbRaw)
         sourcePanel = findViewById(R.id.sourcePanel)
@@ -116,6 +128,11 @@ class MainActivity : AppCompatActivity() {
         progressText = findViewById(R.id.progressText)
         progressBar = findViewById(R.id.progressBar)
         progressPercent = findViewById(R.id.progressPercent)
+        detailPanel = findViewById(R.id.detailPanel)
+        fileInfoText = findViewById(R.id.fileInfoText)
+        fileMetaText = findViewById(R.id.fileMetaText)
+        receivedChunksText = findViewById(R.id.receivedChunksText)
+        missingChunksText = findViewById(R.id.missingChunksText)
         resultPanel = findViewById(R.id.resultPanel)
         resultFileName = findViewById(R.id.resultFileName)
         resultFileSize = findViewById(R.id.resultFileSize)
@@ -135,7 +152,15 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnRetry).setOnClickListener { reset() }
         btnContinue.setOnClickListener { continueReceiving() }
 
-        modeGroup.setOnCheckedChangeListener { _, checkedId ->
+        qrTypeGroup.setOnCheckedChangeListener { _, checkedId ->
+            currentQrType = when (checkedId) {
+                R.id.rbRgb -> QrType.RGB
+                else -> QrType.MONO
+            }
+            LogCollector.i(TAG, "切换二维码类型: $currentQrType")
+        }
+
+        protocolGroup.setOnCheckedChangeListener { _, checkedId ->
             currentMode = when (checkedId) {
                 R.id.rbRaw -> ScanMode.RAW
                 else -> ScanMode.CHUNKED
@@ -178,6 +203,7 @@ class MainActivity : AppCompatActivity() {
         previewView.visibility = View.VISIBLE
         scanFrame.visibility = View.VISIBLE
         scanHint.visibility = View.VISIBLE
+        scanHint.text = getScanHint()
 
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
@@ -426,8 +452,21 @@ class MainActivity : AppCompatActivity() {
 
     private fun showReceiving() {
         progressOverlay.visibility = View.VISIBLE
-        scanHint.text = "对准二维码 (接收中)"
+        detailPanel.visibility = View.VISIBLE
+        scanHint.text = getScanHint()
         updateProgress()
+    }
+
+    private fun getScanHint(): String {
+        val typeName = when (currentQrType) {
+            QrType.MONO -> "黑白"
+            QrType.RGB -> "彩色"
+        }
+        val modeName = when (currentMode) {
+            ScanMode.CHUNKED -> "接收中"
+            ScanMode.RAW -> "原始数据"
+        }
+        return "对准${typeName}二维码 ($modeName)"
     }
 
     private fun updateProgress() {
@@ -438,6 +477,36 @@ class MainActivity : AppCompatActivity() {
         progressText.text = "$received/$total"
         progressBar.progress = pct
         progressPercent.text = "$pct%"
+
+        // 文件信息
+        val name = receiveState.fileName
+        val size = receiveState.fileSize
+        if (name != null && size != null) {
+            fileInfoText.text = name
+            val meta = StringBuilder("原始大小: ${formatBytes(size)}")
+            if (receiveState.isCompressed) meta.append(" · 7z压缩")
+            fileMetaText.text = meta.toString()
+        } else {
+            fileInfoText.text = "等待元数据..."
+            fileMetaText.text = "扫描第0块获取文件信息"
+        }
+
+        // chunk 状态
+        val receivedIds = receiveState.chunks.keys.sorted()
+        val missingIds = (0 until total).filter { it !in receiveState.chunks }
+
+        receivedChunksText.text = "已收到 (${receivedIds.size}): ${receivedIds.truncate(15)}"
+        if (missingIds.isEmpty()) {
+            missingChunksText.visibility = View.GONE
+        } else {
+            missingChunksText.visibility = View.VISIBLE
+            missingChunksText.text = "缺失 (${missingIds.size}): ${missingIds.truncate(15)}"
+        }
+    }
+
+    private fun List<Int>.truncate(max: Int): String {
+        return if (size <= max) joinToString(", ")
+        else "${take(max).joinToString(", ")}... 等${size}块"
     }
 
     private suspend fun assemble() {
@@ -536,6 +605,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun showDone() {
         loadingIndicator.visibility = View.GONE
+        progressOverlay.visibility = View.GONE
+        detailPanel.visibility = View.GONE
         resultPanel.visibility = View.VISIBLE
         findViewById<TextView>(R.id.resultTitle).text = "接收完成！"
         resultFileName.visibility = View.VISIBLE
@@ -548,6 +619,7 @@ class MainActivity : AppCompatActivity() {
     private fun showError(message: String, showContinue: Boolean = false) {
         loadingIndicator.visibility = View.GONE
         progressOverlay.visibility = View.GONE
+        detailPanel.visibility = View.GONE
         errorPanel.visibility = View.VISIBLE
         errorText.text = message
         btnContinue.visibility = if (showContinue) View.VISIBLE else View.GONE
@@ -593,6 +665,7 @@ class MainActivity : AppCompatActivity() {
         resultPanel.visibility = View.GONE
         errorPanel.visibility = View.GONE
         progressOverlay.visibility = View.GONE
+        detailPanel.visibility = View.GONE
         loadingIndicator.visibility = View.GONE
 
         previewView.visibility = View.GONE
@@ -607,6 +680,7 @@ class MainActivity : AppCompatActivity() {
         receiveState.appState = AppState.RECEIVING
         receiveState.lastError = null
         errorPanel.visibility = View.GONE
+        resultPanel.visibility = View.GONE
         showReceiving()
         startCameraMode()
     }
@@ -634,6 +708,10 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "QRTransfer"
     }
+}
+
+enum class QrType {
+    MONO, RGB
 }
 
 enum class ScanMode {
