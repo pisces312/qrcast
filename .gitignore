@@ -20,6 +20,7 @@ build/
 .workbuddy/
 *.apk
 *.aab
+*.idsig
 
 # IDE
 .idea/
