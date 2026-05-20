@@ -250,23 +250,53 @@ class MainActivity : AppCompatActivity() {
         sourcePanel.visibility = View.GONE
 
         lifecycleScope.launch(Dispatchers.IO) {
-            val allBarcodes = mutableListOf<Barcode>()
-            for (uri in uris) {
-                try {
-                    val image = InputImage.fromFilePath(this@MainActivity, uri)
-                    val barcodes = barcodeScanner.process(image).await()
-                    allBarcodes.addAll(barcodes)
-                } catch (e: Exception) {
-                    LogCollector.e(TAG, "图库图片解析失败: $uri", e)
+            if (currentQrType == QrType.RGB) {
+                // RGB path: decode color QR canvases
+                val decoder = RgbQrDecoder()
+                val allChunks = mutableListOf<ChunkInfo>()
+                for (uri in uris) {
+                    try {
+                        contentResolver.openInputStream(uri)?.use { stream ->
+                            val bitmap = android.graphics.BitmapFactory.decodeStream(stream)
+                            if (bitmap != null) {
+                                val chunks = decoder.decodeImage(bitmap)
+                                allChunks.addAll(chunks)
+                                bitmap.recycle()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        LogCollector.e(TAG, "RGB canvas decode failed: $uri", e)
+                    }
                 }
-            }
 
-            withContext(Dispatchers.Main) {
-                loadingIndicator.visibility = View.GONE
-                if (allBarcodes.isNotEmpty()) {
-                    onDetect(allBarcodes)
-                } else {
-                    showError("未在图片中检测到二维码")
+                withContext(Dispatchers.Main) {
+                    loadingIndicator.visibility = View.GONE
+                    if (allChunks.isNotEmpty()) {
+                        processChunkList(allChunks)
+                    } else {
+                        showError("未在图片中检测到 RGB 二维码")
+                    }
+                }
+            } else {
+                // Mono path: use ML Kit directly
+                val allBarcodes = mutableListOf<Barcode>()
+                for (uri in uris) {
+                    try {
+                        val image = InputImage.fromFilePath(this@MainActivity, uri)
+                        val barcodes = barcodeScanner.process(image).await()
+                        allBarcodes.addAll(barcodes)
+                    } catch (e: Exception) {
+                        LogCollector.e(TAG, "图库图片解析失败: $uri", e)
+                    }
+                }
+
+                withContext(Dispatchers.Main) {
+                    loadingIndicator.visibility = View.GONE
+                    if (allBarcodes.isNotEmpty()) {
+                        onDetect(allBarcodes)
+                    } else {
+                        showError("未在图片中检测到二维码")
+                    }
                 }
             }
         }
@@ -354,6 +384,10 @@ class MainActivity : AppCompatActivity() {
             potentialChunks.add(chunk)
         }
 
+        processChunkList(potentialChunks)
+    }
+
+    private fun processChunkList(potentialChunks: List<ChunkInfo>) {
         if (potentialChunks.isEmpty()) return
 
         val totalCounts = mutableMapOf<Int, Int>()
@@ -409,46 +443,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun parsePayloadV2(raw: ByteArray): ChunkInfo? {
-        if (raw.size < 12) return null
-        val buffer = ByteBuffer.wrap(raw).order(ByteOrder.BIG_ENDIAN)
-        val seq = buffer.int
-        val total = buffer.int
-        val dataLen = buffer.short.toInt() and 0xFFFF
-        val protoVer = buffer.get().toInt() and 0xFF
-        val flags = buffer.get().toInt() and 0xFF
-
-        if (protoVer != 0x02) return null
-        if (dataLen > raw.size - 12) return null
-
-        val dataSegment = raw.copyOfRange(12, 12 + dataLen)
-
-        var fileName: String? = null
-        var fileCrc32: Long? = null
-        var fileSize: Int? = null
-        var payload = dataSegment
-
-        if (seq == 0) {
-            if (dataSegment.isEmpty()) return null
-            val fileNameLen = dataSegment[0].toInt() and 0xFF
-            if (1 + fileNameLen + 8 > dataSegment.size) return null
-            fileName = String(dataSegment, 1, fileNameLen, Charsets.UTF_8)
-            val metaBuf = ByteBuffer.wrap(dataSegment, 1 + fileNameLen, 8).order(ByteOrder.BIG_ENDIAN)
-            fileCrc32 = metaBuf.int.toLong() and 0xFFFFFFFFL
-            fileSize = metaBuf.int
-            payload = dataSegment.copyOfRange(1 + fileNameLen + 8, dataSegment.size)
-        }
-
-        return ChunkInfo(
-            seq = seq,
-            total = total,
-            payload = payload,
-            fileName = fileName,
-            fileCrc32 = fileCrc32,
-            fileSize = fileSize,
-            isCompressed = (flags and 0x01) != 0
-        )
-    }
+    // parsePayloadV2() moved to RgbQrDecoder.kt as a shared top-level function
 
     private fun showReceiving() {
         progressOverlay.visibility = View.VISIBLE
@@ -757,7 +752,4 @@ data class ChunkInfo(
     override fun hashCode(): Int = 31 * (31 * seq + total) + payload.contentHashCode()
 }
 
-// Extension to convert Task to suspend function
-private suspend fun <T> com.google.android.gms.tasks.Task<T>.await(): T {
-    return com.google.android.gms.tasks.Tasks.await(this)
-}
+// await() extension moved to RgbQrDecoder.kt as a shared top-level function
