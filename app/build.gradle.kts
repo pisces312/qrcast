@@ -27,9 +27,12 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
-            isShrinkResources = false
-            signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = project.findProperty("enableMinify")?.toString()?.toBoolean() ?: true
+            isShrinkResources = project.findProperty("enableShrinkResources")?.toString()?.toBoolean() ?: true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 

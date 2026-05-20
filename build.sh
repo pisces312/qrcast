@@ -2,6 +2,11 @@
 # QRCast Build Script
 # Usage: ./build.sh [debug|release] [--no-minify]
 #   (default: release)
+#
+# Examples:
+#   ./build.sh                  # Build release with minify
+#   ./build.sh debug            # Build debug
+#   ./build.sh release --no-minify   # Build release without minify
 
 set -e
 
@@ -65,13 +70,7 @@ fi
 BUILD_DIR="$APP_DIR/build/outputs/apk/$BUILD_TYPE"
 UNSIGNED_APK=""
 if [[ "$BUILD_TYPE" == "release" ]]; then
-    # Gradle may output app-release.apk (pre-signed with debug keystore)
-    # or app-release-unsigned.apk if signingConfig is not set
-    if [[ -f "$BUILD_DIR/app-release-unsigned.apk" ]]; then
-        UNSIGNED_APK="$BUILD_DIR/app-release-unsigned.apk"
-    else
-        UNSIGNED_APK="$BUILD_DIR/app-release.apk"
-    fi
+    UNSIGNED_APK="$BUILD_DIR/app-release-unsigned.apk"
 else
     UNSIGNED_APK="$BUILD_DIR/app-debug.apk"
 fi
