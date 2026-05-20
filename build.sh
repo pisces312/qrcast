@@ -65,7 +65,13 @@ fi
 BUILD_DIR="$APP_DIR/build/outputs/apk/$BUILD_TYPE"
 UNSIGNED_APK=""
 if [[ "$BUILD_TYPE" == "release" ]]; then
-    UNSIGNED_APK="$BUILD_DIR/app-release-unsigned.apk"
+    # Gradle may output app-release.apk (pre-signed with debug keystore)
+    # or app-release-unsigned.apk if signingConfig is not set
+    if [[ -f "$BUILD_DIR/app-release-unsigned.apk" ]]; then
+        UNSIGNED_APK="$BUILD_DIR/app-release-unsigned.apk"
+    else
+        UNSIGNED_APK="$BUILD_DIR/app-release.apk"
+    fi
 else
     UNSIGNED_APK="$BUILD_DIR/app-debug.apk"
 fi
