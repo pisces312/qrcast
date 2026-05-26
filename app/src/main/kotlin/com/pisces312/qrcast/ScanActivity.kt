@@ -54,6 +54,7 @@ class ScanActivity : AppCompatActivity() {
     private lateinit var receivedChunksText: TextView
     private lateinit var missingChunksText: TextView
     private lateinit var timeEstimateText: TextView
+    private lateinit var speedText: TextView
     private lateinit var progressBar: ProgressBar
     private lateinit var progressPercent: TextView
     private lateinit var progressText: TextView
@@ -129,6 +130,7 @@ class ScanActivity : AppCompatActivity() {
         receivedChunksText = findViewById(R.id.receivedChunksText)
         missingChunksText = findViewById(R.id.missingChunksText)
         timeEstimateText = findViewById(R.id.timeEstimateText)
+        speedText = findViewById(R.id.speedText)
         progressBar = findViewById(R.id.progressBar)
         progressPercent = findViewById(R.id.progressPercent)
         progressText = findViewById(R.id.progressText)
@@ -399,7 +401,9 @@ class ScanActivity : AppCompatActivity() {
         fileInfoText.text = "正在接收..."
         receivedChunksText.text = "已收到: --"
         missingChunksText.text = "缺失: --"
-        missingChunksText.visibility = View.VISIBLE
+        progressText.text = "0/--"
+        timeEstimateText.text = "-- / --"
+        speedText.text = ""
 
         val outDir = SettingsActivity.getOutputDir(this)
         fileMetaText.text = "保存位置: ${outDir.absolutePath}"
@@ -452,13 +456,16 @@ class ScanActivity : AppCompatActivity() {
             }
 
             val elapsed = (System.currentTimeMillis() - receiveStartTime) / 1000.0
-            val speed = if (elapsed > 0.5) totalReceived / elapsed else 0.0
-            if (speed > 0 && totalExpected > totalReceived) {
-                val eta = totalExpected / speed
+            val chunkSpeed = if (elapsed > 0.5) totalReceived / elapsed else 0.0
+            if (chunkSpeed > 0 && totalExpected > totalReceived) {
+                val eta = totalExpected / chunkSpeed
                 timeEstimateText.text = "%.1fs / %.1fs".format(elapsed, eta)
             } else {
                 timeEstimateText.text = "%.1fs / --".format(elapsed)
             }
+
+            val bytesPerSec = (chunkSpeed * PAYLOAD_BYTES).toLong()
+            speedText.text = if (bytesPerSec > 0) "${formatBytes(bytesPerSec)}/s" else ""
         }
     }
 
@@ -813,5 +820,6 @@ class ScanActivity : AppCompatActivity() {
         const val EXTRA_SCAN_MODE = "scan_mode"
         const val CAMERA_TARGET_WIDTH = 1280
         const val CAMERA_TARGET_HEIGHT = 960
+        private const val PAYLOAD_BYTES = 256  // typical binary chunk payload size
     }
 }
