@@ -38,10 +38,17 @@ QRCast 是一款通过二维码传输文件的工具，支持黑白二维码和 
 • 从不同图片中扫描的二维码会自动按文件名分组
 • 每个文件独立显示进度
 
+【性能建议】
+• 生成端建议使用 ver 30 二维码，每块 payload ~1.77KB
+  命令: qrcast generate v2 FILE --mode individual --ver 30
+• 手机端实测扫描速率 ~5 fps，建议 display 端 10 帧/秒播放
+  命令: qrcast display DIR --mode individual --interval 0.1
+• ver 30 比 ver 20 每块容量增加约 70%，传输块数减少约 42%
+
 【提示】
 • 确保二维码清晰可见，光线充足
 • 彩色二维码需要保持颜色准确，避免过度压缩
-• 大文件建议使用分块协议，分多张二维码传输
+• 设置中可开启横屏模式和屏幕常亮以优化扫描体验
         """.trimIndent()
     }
 }

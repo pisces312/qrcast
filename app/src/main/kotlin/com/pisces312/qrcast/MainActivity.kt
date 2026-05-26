@@ -1055,9 +1055,8 @@ class MainActivity : AppCompatActivity() {
     private fun formatBytes(bytes: Int): String {
         return when {
             bytes < 1024 -> "$bytes B"
-            bytes < 1024 * 1024 -> "${bytes / 1024.0} KB"
-            bytes < 1024 * 1024 * 1024 -> "${bytes / (1024.0 * 1024.0)} MB"
-            else -> "${bytes / (1024.0 * 1024.0 * 1024.0)} GB"
+            bytes < 1024 * 1024 -> String.format("%.2f KB", bytes / 1024.0)
+            else -> String.format("%.2f MB", bytes / (1024.0 * 1024.0))
         }
     }
 
