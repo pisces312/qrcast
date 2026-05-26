@@ -380,6 +380,7 @@ class ScanActivity : AppCompatActivity() {
             }
 
             fileState.chunks[chunk.seq] = chunk.payload
+            fileState.totalPayloadBytes += chunk.payload.size
             fileState.receivedCount = fileState.chunks.size
             hasNewChunk = true
         }
@@ -464,7 +465,9 @@ class ScanActivity : AppCompatActivity() {
                 timeEstimateText.text = "%.1fs / --".format(elapsed)
             }
 
-            val bytesPerSec = (chunkSpeed * PAYLOAD_BYTES).toLong()
+            // Use actual received byte count
+            val totalPayloadBytes = activeFiles.sumOf { it.totalPayloadBytes } + completedFiles.sumOf { it.totalPayloadBytes }
+            val bytesPerSec = if (elapsed > 0.5) (totalPayloadBytes / elapsed).toLong() else 0L
             speedText.text = if (bytesPerSec > 0) "${formatBytes(bytesPerSec)}/s" else ""
         }
     }
@@ -820,6 +823,5 @@ class ScanActivity : AppCompatActivity() {
         const val EXTRA_SCAN_MODE = "scan_mode"
         const val CAMERA_TARGET_WIDTH = 1280
         const val CAMERA_TARGET_HEIGHT = 960
-        private const val PAYLOAD_BYTES = 256  // typical binary chunk payload size
     }
 }

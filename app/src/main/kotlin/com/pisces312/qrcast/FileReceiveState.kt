@@ -15,6 +15,7 @@ class FileReceiveState(
     var lastError: String? = null
     var outputPath: String? = null
     var outputSize = 0L
+    var totalPayloadBytes = 0L
     var missingChunks = listOf<Int>()
     val chunks = ConcurrentHashMap<Int, ByteArray>()
 
