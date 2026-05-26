@@ -64,7 +64,8 @@ if [[ "$NO_MINIFY" == true ]]; then
     GRADLE_ARGS="$GRADLE_ARGS -PenableMinify=false -PenableShrinkResources=false"
     echo "=== Minify/ShrinkResources disabled ==="
 fi
-./gradlew "$GRADLE_TASK" $GRADLE_ARGS
+java -cp "$PROJECT_DIR/gradle/wrapper/gradle-wrapper.jar" \
+    org.gradle.wrapper.GradleWrapperMain "$GRADLE_TASK" $GRADLE_ARGS
 
 # Find APK
 BUILD_DIR="$APP_DIR/build/outputs/apk/$BUILD_TYPE"
