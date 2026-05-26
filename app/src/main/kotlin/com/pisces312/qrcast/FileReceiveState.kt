@@ -27,12 +27,16 @@ class MultiFileReceiveManager {
     private val files = mutableMapOf<String, FileReceiveState>()
 
     fun getOrCreate(fileKey: String, chunk: ChunkInfo): FileReceiveState {
-        // seq>0 chunks lack fileName/fileCrc32, match to existing active file
+        // seq>0 chunks lack fileName/fileCrc32, match to existing file
+        // (active, assembling, or completed — stray scans after completion)
         if (chunk.fileName == null) {
-            val active = files.values.firstOrNull {
-                it.appState == AppState.SCANNING || it.appState == AppState.RECEIVING
+            val existing = files.values.firstOrNull {
+                it.appState == AppState.SCANNING ||
+                it.appState == AppState.RECEIVING ||
+                it.appState == AppState.ASSEMBLING ||
+                it.appState == AppState.DONE
             }
-            if (active != null) return active
+            if (existing != null) return existing
         }
         return files.getOrPut(fileKey) {
             FileReceiveState(

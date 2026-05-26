@@ -155,6 +155,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnShare).setOnClickListener { shareFile() }
         findViewById<Button>(R.id.btnReset).setOnClickListener { reset() }
         findViewById<Button>(R.id.btnRetry).setOnClickListener { reset() }
+        findViewById<ImageButton>(R.id.btnCancelReceive).setOnClickListener { cancelReceiving() }
         btnContinue.setOnClickListener { continueReceiving() }
 
         qrTypeGroup.setOnCheckedChangeListener { _, checkedId ->
@@ -844,6 +845,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun cancelReceiving() {
+        // Return to main interface from receiving state
+        receiveManager.clear()
+        currentFileKey = null
+        receiveState = ReceiveState()
+        resultPanel.visibility = View.GONE
+        errorPanel.visibility = View.GONE
+        progressOverlay.visibility = View.GONE
+        detailPanel.visibility = View.GONE
+        loadingIndicator.visibility = View.GONE
+        sourcePanel.visibility = View.VISIBLE
+        stopCamera()
+    }
+
     private fun reset() {
         receiveManager.clear()
         currentFileKey = null
@@ -872,6 +887,15 @@ class MainActivity : AppCompatActivity() {
         resultPanel.visibility = View.GONE
         showReceiving()
         startCameraMode()
+    }
+
+    override fun onBackPressed() {
+        // If receiving, cancel and return to source panel instead of exiting app
+        if (progressOverlay.visibility == View.VISIBLE) {
+            cancelReceiving()
+        } else {
+            super.onBackPressed()
+        }
     }
 
     private fun stopCamera() {

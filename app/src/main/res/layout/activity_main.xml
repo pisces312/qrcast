@@ -317,6 +317,16 @@
             android:textColor="@color/white"
             android:textSize="14sp"
             android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btnCancelReceive"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:contentDescription="取消接收"
+            app:tint="@color/white" />
     </LinearLayout>
 
     <LinearLayout
