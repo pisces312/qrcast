@@ -1,6 +1,7 @@
 package com.pisces312.qrcast
 
 import android.Manifest
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -13,6 +14,7 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.RadioGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
@@ -80,6 +82,10 @@ class MainActivity : AppCompatActivity() {
     private var receiveState = ReceiveState() // 保持兼容，实际使用 receiveManager
     private var lastProcessTime = 0L
     private val throttleMs = 200
+    // Pending assembled data awaiting user save decision
+    private var pendingData: ByteArray? = null
+    private var pendingFileName: String? = null
+    private var pendingFileKey: String? = null
     private var currentMode = ScanMode.CHUNKED
     private var currentQrType = QrType.MONO
 
@@ -106,6 +112,14 @@ class MainActivity : AppCompatActivity() {
     ) { uris ->
         if (uris.isNotEmpty()) {
             processGalleryImages(uris)
+        }
+    }
+
+    private val saveAsLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/octet-stream")
+    ) { uri ->
+        if (uri != null) {
+            saveToChosenUri(uri)
         }
     }
 
@@ -670,25 +684,24 @@ class MainActivity : AppCompatActivity() {
 
                 fileState.outputSize = data.size
 
-                val outDir = SettingsActivity.getOutputDir(this@MainActivity)
-                if (!outDir.exists()) outDir.mkdirs()
-
                 val outName = if (!fileState.fileName.isNullOrEmpty()) {
                     fileState.fileName!!
                 } else {
                     detectExtension(data)
                 }
 
-                val outFile = File(outDir, outName)
-                outFile.writeBytes(data)
-
-                fileState.outputPath = outFile.absolutePath
+                // Don't write file yet — show save dialog first
+                pendingData = data
+                pendingFileName = outName
+                pendingFileKey = fileState.fileKey
 
                 fileState.appState = AppState.DONE
-                LogCollector.i(TAG, "[${fileState.fileKey}] File received: $outName (${formatBytes(data.size)})")
+                LogCollector.i(TAG, "[${fileState.fileKey}] File assembled: $outName (${formatBytes(data.size)})")
 
                 withContext(Dispatchers.Main) {
+                    stopCamera()
                     updateMultiFileProgress()
+                    showSaveDialog(outName, data.size)
                 }
             } catch (e: Exception) {
                 LogCollector.e(TAG, "[$fileState.fileKey] 文件组装失败", e)
@@ -778,6 +791,73 @@ class MainActivity : AppCompatActivity() {
         btnContinue.visibility = if (showContinue) View.VISIBLE else View.GONE
     }
 
+    private fun showSaveDialog(fileName: String, fileSize: Int) {
+        val data = pendingData ?: return
+        val message = "文件: $fileName\n大小: ${formatBytes(fileSize)}"
+
+        AlertDialog.Builder(this)
+            .setTitle("接收成功!")
+            .setMessage(message)
+            .setPositiveButton("保存到默认路径") { _, _ ->
+                saveToDefaultPath()
+            }
+            .setNeutralButton("另存为...") { _, _ ->
+                saveAsLauncher.launch(fileName)
+            }
+            .setNegativeButton("取消") { _, _ ->
+                pendingData = null
+                pendingFileName = null
+                pendingFileKey = null
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun saveToDefaultPath() {
+        val data = pendingData ?: return
+        val outName = pendingFileName ?: return
+        val fileKey = pendingFileKey ?: return
+
+        val outDir = SettingsActivity.getOutputDir(this)
+        if (!outDir.exists()) outDir.mkdirs()
+
+        val outFile = File(outDir, outName)
+        outFile.writeBytes(data)
+
+        val fileState = receiveManager.get(fileKey)
+        fileState?.outputPath = outFile.absolutePath
+
+        pendingData = null
+        pendingFileName = null
+        pendingFileKey = null
+
+        Toast.makeText(this, "已保存到: ${outFile.absolutePath}", Toast.LENGTH_LONG).show()
+        showDone()
+    }
+
+    private fun saveToChosenUri(uri: Uri) {
+        val data = pendingData ?: return
+        val fileKey = pendingFileKey ?: return
+
+        try {
+            contentResolver.openOutputStream(uri)?.use { output ->
+                output.write(data)
+            }
+            val fileState = receiveManager.get(fileKey)
+            fileState?.outputPath = uri.toString()
+
+            pendingData = null
+            pendingFileName = null
+            pendingFileKey = null
+
+            Toast.makeText(this, "文件已保存", Toast.LENGTH_SHORT).show()
+            showDone()
+        } catch (e: Exception) {
+            LogCollector.e(TAG, "Failed to save file", e)
+            Toast.makeText(this, "保存失败: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun openFile() {
         val completedFiles = receiveManager.getCompletedFiles()
         if (completedFiles.isEmpty()) return
@@ -855,6 +935,9 @@ class MainActivity : AppCompatActivity() {
         progressOverlay.visibility = View.GONE
         detailPanel.visibility = View.GONE
         loadingIndicator.visibility = View.GONE
+        previewView.visibility = View.GONE
+        scanFrame.visibility = View.GONE
+        scanHint.visibility = View.GONE
         sourcePanel.visibility = View.VISIBLE
         stopCamera()
     }
