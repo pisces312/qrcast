@@ -2,10 +2,10 @@ package com.pisces312.qrcast
 
 class FileReceiveState(
     val fileKey: String,
-    val fileName: String? = null,
-    val fileCrc32: Long? = null,
-    val fileSize: Int? = null,
-    val isCompressed: Boolean = false
+    var fileName: String? = null,
+    var fileCrc32: Long? = null,
+    var fileSize: Int? = null,
+    var isCompressed: Boolean = false
 ) {
     var appState = AppState.SCANNING
     var totalChunks: Int? = null
@@ -27,16 +27,22 @@ class MultiFileReceiveManager {
     private val files = mutableMapOf<String, FileReceiveState>()
 
     fun getOrCreate(fileKey: String, chunk: ChunkInfo): FileReceiveState {
-        // seq>0 chunks lack fileName/fileCrc32, match to existing file
-        // (active, assembling, or completed — stray scans after completion)
-        if (chunk.fileName == null) {
-            val existing = files.values.firstOrNull {
-                it.appState == AppState.SCANNING ||
-                it.appState == AppState.RECEIVING ||
-                it.appState == AppState.ASSEMBLING ||
-                it.appState == AppState.DONE
+        // Always try to match existing active file first
+        // (handles generateFileKey mismatch between seq=0 and seq>0)
+        val existing = files.values.firstOrNull {
+            it.appState == AppState.SCANNING ||
+            it.appState == AppState.RECEIVING ||
+            it.appState == AppState.ASSEMBLING
+        }
+        if (existing != null) {
+            // Transfer metadata from seq=0 chunk if existing file lacks it
+            if (existing.fileName == null && chunk.fileName != null) {
+                existing.fileName = chunk.fileName
+                existing.fileCrc32 = chunk.fileCrc32
+                existing.fileSize = chunk.fileSize
+                existing.isCompressed = chunk.isCompressed
             }
-            if (existing != null) return existing
+            return existing
         }
         return files.getOrPut(fileKey) {
             FileReceiveState(
