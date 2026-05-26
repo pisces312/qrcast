@@ -36,8 +36,23 @@ def cmd_generate(args):
 
 
 def cmd_display(args):
-    from qrcast.common import display_canvases
-    display_canvases(args.image_dir, display_sec=args.interval, pattern=args.pattern)
+    # Default pattern and interval based on mode
+    if args.display_mode == "individual":
+        if args.interval == 2:  # still at default, switch to 0.5 for individual
+            args.interval = 0.5
+        if args.pattern is None:
+            args.pattern = "qr_*.png"
+    else:
+        if args.pattern is None:
+            args.pattern = "qrcode_*.png"
+
+    if args.display_mode == "canvas":
+        from qrcast.common import display_canvases
+        display_canvases(args.image_dir, display_sec=args.interval, pattern=args.pattern)
+    else:
+        from qrcast.bw.v2.display import display_individual_qr
+        display_individual_qr(args.image_dir, interval=args.interval, pattern=args.pattern,
+                              fullscreen=not args.no_fullscreen, end_pause=args.end_pause)
 
 
 def cmd_verify(args):
@@ -92,10 +107,17 @@ def main():
     p_gen.set_defaults(func=cmd_generate)
 
     # ── display ───────────────────────────────────────
-    p_disp = subparsers.add_parser("display", help="Display QR canvas images fullscreen")
-    p_disp.add_argument("image_dir", nargs="?", default="./tmp", help="Directory with canvas images")
-    p_disp.add_argument("-i", "--interval", type=float, default=2, help="Seconds per image (default: 2)")
-    p_disp.add_argument("-p", "--pattern", default="qrcode_*.png", help="Glob pattern (default: qrcode_*.png)")
+    p_disp = subparsers.add_parser("display", help="Display QR images fullscreen")
+    p_disp.add_argument("image_dir", nargs="?", default="./tmp", help="Directory with QR images")
+    p_disp.add_argument("-i", "--interval", type=float, default=2, help="Seconds per image (default: 2 for canvas, 0.5 for individual)")
+    p_disp.add_argument("-p", "--pattern", default=None, help="Glob pattern (default: qrcode_*.png for canvas, qr_*.png for individual)")
+    p_disp.add_argument("--mode", choices=["canvas", "individual"], default="canvas",
+                        dest="display_mode",
+                        help="Display mode: canvas (grid images via HDMI) or individual (single QR for phone) (default: canvas)")
+    p_disp.add_argument("--no-fullscreen", action="store_true",
+                        help="Display at original image size instead of fullscreen (individual mode only)")
+    p_disp.add_argument("--end-pause", type=float, default=3,
+                        help="Seconds to hold the last image after playback (individual mode, default: 3)")
     p_disp.set_defaults(func=cmd_display)
 
     # ── verify ────────────────────────────────────────

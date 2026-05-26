@@ -103,7 +103,21 @@ def build_payload(seq, total, flags, chunk_data, filename=None, file_crc32=None,
     return payload
 
 
-def generate_qr_images(file_path, ver=20, base_dir="./tmp", compress=False, save_chunks=False):
+def generate_qr_images(file_path, ver=20, base_dir="./tmp", compress=False, mode="canvas"):
+    """Generate QR code images from a file.
+
+    Args:
+        file_path: Path to the file to encode.
+        ver: QR version (1-40).
+        base_dir: Base output directory.
+        compress: Whether to compress with 7z first.
+        mode: Output mode - "canvas" (grid images for HDMI),
+              "individual" (single QR images for phone display),
+              "both" (both outputs).
+    """
+    if mode not in ("canvas", "individual", "both"):
+        raise ValueError(f"mode must be 'canvas', 'individual', or 'both', got '{mode}'")
+
     if not os.path.exists(file_path):
         print("File not found!")
         return
@@ -111,14 +125,13 @@ def generate_qr_images(file_path, ver=20, base_dir="./tmp", compress=False, save
     qr_cfg = QRConfig(ver)
     qr_cfg.print_config()
 
-    os.makedirs(base_dir, exist_ok=True)
-
     with open(file_path, "rb") as f:
         original_bytes = f.read()
 
     original_size = len(original_bytes)
     original_crc = zlib.crc32(original_bytes) & 0xFFFFFFFF
     filename = os.path.basename(file_path)
+    filename_base = os.path.splitext(filename)[0]
 
     if compress:
         file_bytes = file_to_7z_bytes(file_path)
@@ -145,13 +158,24 @@ def generate_qr_images(file_path, ver=20, base_dir="./tmp", compress=False, save
         seq += 1
 
     total_chunks = len(chunks)
-    total_images = (total_chunks + qr_cfg.qr_per_image - 1) // qr_cfg.qr_per_image
 
     print(f"{'Compressed' if compress else 'Raw'} total size: {len(file_bytes)} bytes")
     print(f"Original size: {original_size} bytes, CRC32: {original_crc:08X}")
-    print(f"Total chunks: {total_chunks}, total canvases: {total_images}")
+    print(f"Total chunks: {total_chunks}")
 
     flags = 0x01 if compress else 0x00
+
+    # Prepare output directories
+    canvas_dir = None
+    individual_dir = None
+    if mode in ("canvas", "both"):
+        canvas_dir = os.path.join(base_dir, f"{filename_base}-canvas")
+        os.makedirs(canvas_dir, exist_ok=True)
+    if mode in ("individual", "both"):
+        individual_dir = os.path.join(base_dir, f"{filename_base}-individual")
+        os.makedirs(individual_dir, exist_ok=True)
+
+    total_images = (total_chunks + qr_cfg.qr_per_image - 1) // qr_cfg.qr_per_image
 
     for img_idx in range(total_images):
         print(f"\nGenerating canvas {img_idx + 1}/{total_images}")
@@ -179,25 +203,32 @@ def generate_qr_images(file_path, ver=20, base_dir="./tmp", compress=False, save
             qr_img = make_qr(payload, qr_cfg)
             current_qrs.append(qr_img)
 
-            if save_chunks:
-                qr_debug_path = os.path.join(base_dir, f"qr_chunk_{chunk_idx:04d}.png")
-                qr_img.save(qr_debug_path)
+            if individual_dir is not None:
+                qr_path = os.path.join(individual_dir, f"qr_{chunk_idx:04d}.png")
+                qr_img.save(qr_path)
 
-        canvas = make_canvas(current_qrs, qr_cfg)
-        output_path = os.path.join(base_dir, f"qrcode_{img_idx + 1:03d}.png")
-        canvas.save(output_path)
-        print(f"Saved: {output_path}")
+        if canvas_dir is not None:
+            canvas = make_canvas(current_qrs, qr_cfg)
+            output_path = os.path.join(canvas_dir, f"qrcode_{img_idx + 1:03d}.png")
+            canvas.save(output_path)
+            print(f"Saved: {output_path}")
 
-    print(f"\n[OK] All {total_images} canvas images generated in {base_dir}")
+    print(f"\n[OK] QR images generated in {base_dir}")
+    if canvas_dir:
+        print(f"  Canvas mode: {canvas_dir}")
+    if individual_dir:
+        print(f"  Individual mode: {individual_dir}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate V2 B&W QR code canvases v2 (with filename + CRC)")
     parser.add_argument("file_path", help="File to encode")
     parser.add_argument("--ver", type=int, default=20, help="QR version (1-40, default: 20)")
-    parser.add_argument("--output-dir", default="./tmp", help="Output directory")
+    parser.add_argument("--output-dir", default="./tmp", help="Base output directory")
     parser.add_argument("--compress", action="store_true", help="Compress with 7z first")
-    parser.add_argument("--save-chunks", action="store_true", help="Save individual QR chunk images")
+    parser.add_argument("--mode", choices=["canvas", "individual", "both"], default="canvas",
+                        help="Output mode: canvas (grid images for HDMI), "
+                             "individual (single QR for phone display), both (default: canvas)")
     args = parser.parse_args()
 
     generate_qr_images(
@@ -205,5 +236,5 @@ if __name__ == "__main__":
         ver=args.ver,
         base_dir=args.output_dir,
         compress=args.compress,
-        save_chunks=args.save_chunks,
+        mode=args.mode,
     )
