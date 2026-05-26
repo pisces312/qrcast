@@ -254,14 +254,18 @@
         </LinearLayout>
     </ScrollView>
 
-    <!-- Camera Preview (hidden by default) -->
+    <!-- Camera Preview (hidden by default, aspect ratio set dynamically) -->
     <androidx.camera.view.PreviewView
         android:id="@+id/previewView"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="0dp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/protocolPanel" />
+        app:layout_constraintDimensionRatio="1280:960"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/protocolPanel"
+        app:layout_constraintWidth_percent="1.0" />
 
     <View
         android:id="@+id/scanFrame"
@@ -270,10 +274,10 @@
         android:background="@drawable/scan_frame"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintDimensionRatio="9:16"
+        app:layout_constraintDimensionRatio="1280:960"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/protocolPanel"
         app:layout_constraintWidth_percent="1.0" />
 
     <TextView

@@ -290,6 +290,15 @@ class MainActivity : AppCompatActivity() {
         analysisResolution = ""
         scanHint.text = getScanHint()
 
+        // Set initial aspect ratio from requested resolution (before first frame)
+        val initialRatio = "${CAMERA_TARGET_WIDTH}:${CAMERA_TARGET_HEIGHT}"
+        val previewParams = previewView.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+        previewParams.dimensionRatio = initialRatio
+        previewView.layoutParams = previewParams
+        val frameParams = scanFrame.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+        frameParams.dimensionRatio = initialRatio
+        scanFrame.layoutParams = frameParams
+
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
             try {
@@ -311,7 +320,7 @@ class MainActivity : AppCompatActivity() {
 
         val resolutionSelector = ResolutionSelector.Builder()
             .setResolutionStrategy(ResolutionStrategy(
-                Size(960, 1080),
+                Size(CAMERA_TARGET_WIDTH, CAMERA_TARGET_HEIGHT),
                 ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER
             ))
             .build()
@@ -456,15 +465,20 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Capture actual camera resolution from first frame
-        // and adapt scanFrame aspect ratio to match camera
+        // and adapt PreviewView + scanFrame aspect ratio to match camera
         if (analysisResolution.isEmpty()) {
             val w = mediaImage.width
             val h = mediaImage.height
             analysisResolution = "${w}×${h}"
+            val ratio = "$w:$h"
             runOnUiThread {
-                val params = scanFrame.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
-                params.dimensionRatio = "$w:$h"
-                scanFrame.layoutParams = params
+                val previewParams = previewView.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+                previewParams.dimensionRatio = ratio
+                previewView.layoutParams = previewParams
+
+                val frameParams = scanFrame.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+                frameParams.dimensionRatio = ratio
+                scanFrame.layoutParams = frameParams
             }
         }
 
@@ -1121,6 +1135,8 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "QRCast"
+        const val CAMERA_TARGET_WIDTH = 1280
+        const val CAMERA_TARGET_HEIGHT = 960
     }
 }
 
