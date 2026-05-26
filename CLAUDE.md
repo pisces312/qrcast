@@ -53,3 +53,11 @@ app/src/main/kotlin/com/example/qr_transfer/
 - SharedPreferences for settings (companion object in SettingsActivity)
 - LogCollector for all logging (i() / w() / e() static methods)
 - UI uses `fitsSystemWindows="true"` on root layout to avoid status bar overlap
+
+## Version Policy
+- **Version bump**: 每次代码修改后，`app/build.gradle.kts` 中 `versionName` 和 `versionCode` 各 +1
+- `build.sh` 从 `build.gradle.kts` 读取 `versionName` 作为 APK 文件名前缀
+
+## Commit & Push
+- `git commit` 后**不自动 push**，等用户确认
+- 修改后用 `./build.sh debug` 构建 debug APK 验证
