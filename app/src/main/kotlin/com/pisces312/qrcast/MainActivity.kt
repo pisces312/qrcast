@@ -18,6 +18,7 @@ import android.widget.ProgressBar
 import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
@@ -148,6 +149,21 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         initViews()
+        setupBackPress()
+    }
+
+    private fun setupBackPress() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (progressOverlay.visibility == View.VISIBLE) {
+                    cancelReceiving()
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                    isEnabled = true
+                }
+            }
+        })
     }
 
     override fun onResume() {
@@ -278,6 +294,7 @@ class MainActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
+    @Suppress("DEPRECATION")
     private fun bindCameraUseCases() {
         val provider = cameraProvider ?: return
 
@@ -1028,15 +1045,6 @@ class MainActivity : AppCompatActivity() {
         resultPanel.visibility = View.GONE
         showReceiving()
         startCameraMode()
-    }
-
-    override fun onBackPressed() {
-        // If receiving, cancel and return to source panel instead of exiting app
-        if (progressOverlay.visibility == View.VISIBLE) {
-            cancelReceiving()
-        } else {
-            super.onBackPressed()
-        }
     }
 
     private fun stopCamera() {
