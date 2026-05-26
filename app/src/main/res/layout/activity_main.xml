@@ -155,98 +155,104 @@
         </RadioGroup>
     </LinearLayout>
 
-    <!-- Source Selection Panel -->
-    <LinearLayout
+    <!-- Source Selection Panel (ScrollView for landscape) -->
+    <ScrollView
         android:id="@+id/sourcePanel"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:padding="32dp"
+        android:fillViewport="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@id/protocolPanel">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/select_source"
-            android:textColor="@color/white"
-            android:textSize="22sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="选择二维码来源开始接收文件"
-            android:textColor="#BDBDBD"
-            android:textSize="14sp" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="48dp"
-            android:orientation="horizontal">
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="32dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/select_source"
+                android:textColor="@color/white"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="选择二维码来源开始接收文件"
+                android:textColor="#BDBDBD"
+                android:textSize="14sp" />
 
             <LinearLayout
-                android:id="@+id/btnCamera"
-                android:layout_width="0dp"
-                android:layout_height="160dp"
-                android:layout_marginEnd="12dp"
-                android:layout_weight="1"
-                android:background="@drawable/result_background"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                android:gravity="center"
-                android:orientation="vertical">
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="48dp"
+                android:orientation="horizontal">
 
-                <ImageView
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:src="@android:drawable/ic_menu_camera"
-                    app:tint="@color/teal_500" />
+                <LinearLayout
+                    android:id="@+id/btnCamera"
+                    android:layout_width="0dp"
+                    android:layout_height="160dp"
+                    android:layout_marginEnd="12dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/result_background"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/scan_camera"
-                    android:textColor="@color/white"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+                    <ImageView
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:src="@android:drawable/ic_menu_camera"
+                        app:tint="@color/teal_500" />
 
-            <LinearLayout
-                android:id="@+id/btnGallery"
-                android:layout_width="0dp"
-                android:layout_height="160dp"
-                android:layout_marginStart="12dp"
-                android:layout_weight="1"
-                android:background="@drawable/result_background"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                android:gravity="center"
-                android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/scan_camera"
+                        android:textColor="@color/white"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
 
-                <ImageView
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:src="@android:drawable/ic_menu_gallery"
-                    app:tint="@color/teal_500" />
+                <LinearLayout
+                    android:id="@+id/btnGallery"
+                    android:layout_width="0dp"
+                    android:layout_height="160dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/result_background"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/scan_gallery"
-                    android:textColor="@color/white"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    <ImageView
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:src="@android:drawable/ic_menu_gallery"
+                        app:tint="@color/teal_500" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/scan_gallery"
+                        android:textColor="@color/white"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
-    </LinearLayout>
+    </ScrollView>
 
     <!-- Camera Preview (hidden by default) -->
     <androidx.camera.view.PreviewView
@@ -259,27 +265,29 @@
 
     <View
         android:id="@+id/scanFrame"
-        android:layout_width="360dp"
-        android:layout_height="360dp"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         android:background="@drawable/scan_frame"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintDimensionRatio="1:1"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintWidth_percent="1.0" />
 
     <TextView
         android:id="@+id/scanHint"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
         android:text="对准二维码"
         android:textColor="@color/white"
         android:textSize="16sp"
         android:visibility="gone"
-        app:layout_constraintEnd_toEndOf="@id/scanFrame"
-        app:layout_constraintStart_toStartOf="@id/scanFrame"
-        app:layout_constraintTop_toTopOf="@id/scanFrame" />
+        app:layout_constraintBottom_toTopOf="@id/scanFrame"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
         android:id="@+id/scanFps"
@@ -287,7 +295,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:textColor="#5DCAA5"
-        android:textSize="12sp"
+        android:textSize="18sp"
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -356,7 +364,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/white"
-            android:textSize="14sp"
+            android:textSize="16sp"
             android:textStyle="bold" />
 
         <TextView
@@ -365,7 +373,15 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:textColor="#888888"
-            android:textSize="12sp" />
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/timeEstimateText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="#FFD54F"
+            android:textSize="13sp" />
 
         <TextView
             android:id="@+id/receivedChunksText"
@@ -373,7 +389,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:textColor="#5DCAA5"
-            android:textSize="12sp" />
+            android:textSize="15sp" />
 
         <TextView
             android:id="@+id/missingChunksText"
@@ -381,7 +397,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:textColor="#F0997B"
-            android:textSize="12sp" />
+            android:textSize="15sp" />
     </LinearLayout>
 
     <LinearLayout

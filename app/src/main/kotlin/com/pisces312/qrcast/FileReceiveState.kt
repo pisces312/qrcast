@@ -1,10 +1,12 @@
 package com.pisces312.qrcast
 
+import java.util.concurrent.ConcurrentHashMap
+
 class FileReceiveState(
     val fileKey: String,
     var fileName: String? = null,
     var fileCrc32: Long? = null,
-    var fileSize: Int? = null,
+    var fileSize: Long? = null,
     var isCompressed: Boolean = false
 ) {
     var appState = AppState.SCANNING
@@ -12,9 +14,9 @@ class FileReceiveState(
     var receivedCount = 0
     var lastError: String? = null
     var outputPath: String? = null
-    var outputSize = 0
+    var outputSize = 0L
     var missingChunks = listOf<Int>()
-    val chunks = mutableMapOf<Int, ByteArray>()
+    val chunks = ConcurrentHashMap<Int, ByteArray>()
 
     val isComplete: Boolean
         get() = totalChunks != null && receivedCount == totalChunks

@@ -8,4 +8,9 @@ class QrTransferApp : Application() {
         super.onCreate()
         LogCollector.init(this)
     }
+
+    override fun onTerminate() {
+        LogCollector.shutdown()
+        super.onTerminate()
+    }
 }

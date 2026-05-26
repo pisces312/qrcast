@@ -7,10 +7,12 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * 双轨日志收集器：内存缓冲区 + 外部文件
- * 应用崩溃时自动保存日志到文件，下次启动可查看
+ * 文件写入异步化：通过 ArrayBlockingQueue + 后台消费者线程，
+ * 避免在 cameraExecutor 等线程上阻塞 IO。
  */
 object LogCollector {
 
@@ -23,6 +25,11 @@ object LogCollector {
     private val memoryLogs = ConcurrentLinkedQueue<LogEntry>()
     private var fileLogger: File? = null
     private val dateFormat = SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.getDefault())
+
+    // Async file writing
+    private val writeQueue = java.util.concurrent.ArrayBlockingQueue<String>(2048)
+    private val writerRunning = AtomicBoolean(false)
+    private var writerThread: Thread? = null
 
     data class LogEntry(
         val timestamp: Long,
@@ -38,7 +45,39 @@ object LogCollector {
     fun init(context: Context) {
         val logDir = File(context.getExternalFilesDir(null), "logs").apply { mkdirs() }
         fileLogger = File(logDir, LOG_FILE_NAME)
+        startWriterThread()
         log("INFO", TAG, "LogCollector initialized")
+    }
+
+    private fun startWriterThread() {
+        if (writerRunning.getAndSet(true)) return
+        writerThread = Thread({
+            while (writerRunning.get() || writeQueue.isNotEmpty()) {
+                try {
+                    val line = writeQueue.poll(100, java.util.concurrent.TimeUnit.MILLISECONDS)
+                    if (line != null) {
+                        writeLineToFile(line)
+                    }
+                } catch (_: InterruptedException) {
+                    break
+                }
+            }
+            writerRunning.set(false)
+        }, "LogWriter")
+        writerThread?.isDaemon = true
+        writerThread?.start()
+    }
+
+    private fun writeLineToFile(line: String) {
+        fileLogger?.let { file ->
+            try {
+                if (file.length() > MAX_LOG_FILE_SIZE) {
+                    trimLogFile(file)
+                }
+                file.appendText(line + "\n")
+            } catch (_: Exception) {
+            }
+        }
     }
 
     fun log(level: String, tag: String, message: String) {
@@ -49,15 +88,8 @@ object LogCollector {
             memoryLogs.poll()
         }
 
-        fileLogger?.let { file ->
-            try {
-                if (file.length() > MAX_LOG_FILE_SIZE) {
-                    trimLogFile(file)
-                }
-                file.appendText(entry.format() + "\n")
-            } catch (_: Exception) {
-            }
-        }
+        // Enqueue for async file write
+        writeQueue.offer(entry.format())
 
         when (level) {
             "ERROR" -> Log.e(tag, message)
@@ -107,5 +139,10 @@ object LogCollector {
             } catch (_: Exception) {
             }
         }
+    }
+
+    fun shutdown() {
+        writerRunning.set(false)
+        writerThread?.interrupt()
     }
 }

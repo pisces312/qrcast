@@ -340,7 +340,7 @@ fun parsePayloadV2(raw: ByteArray): ChunkInfo? {
 
     var fileName: String? = null
     var fileCrc32: Long? = null
-    var fileSize: Int? = null
+    var fileSize: Long? = null
     var payload = dataSegment
 
     if (seq == 0) {
@@ -350,7 +350,7 @@ fun parsePayloadV2(raw: ByteArray): ChunkInfo? {
         fileName = String(dataSegment, 1, fileNameLen, Charsets.UTF_8)
         val metaBuf = ByteBuffer.wrap(dataSegment, 1 + fileNameLen, 8).order(ByteOrder.BIG_ENDIAN)
         fileCrc32 = metaBuf.int.toLong() and 0xFFFFFFFFL
-        fileSize = metaBuf.int
+        fileSize = metaBuf.int.toLong() and 0xFFFFFFFFL
         payload = dataSegment.copyOfRange(1 + fileNameLen + 8, dataSegment.size)
     }
 

@@ -16,6 +16,7 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.RadioGroup
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -25,6 +26,8 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
@@ -43,6 +46,7 @@ import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.Executors
+import java.util.concurrent.ConcurrentHashMap
 import java.util.zip.CRC32
 import org.apache.commons.compress.archivers.sevenz.SevenZFile
 
@@ -55,7 +59,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var rbRgb: View
     private lateinit var rbChunked: View
     private lateinit var rbRaw: View
-    private lateinit var sourcePanel: LinearLayout
+    private lateinit var sourcePanel: ScrollView
     private lateinit var previewView: PreviewView
     private lateinit var scanFrame: View
     private lateinit var scanHint: TextView
@@ -69,6 +73,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var fileMetaText: TextView
     private lateinit var receivedChunksText: TextView
     private lateinit var missingChunksText: TextView
+    private lateinit var timeEstimateText: TextView
+    private var receiveStartTime = 0L
     private lateinit var resultPanel: LinearLayout
     private lateinit var resultFileName: TextView
     private lateinit var resultFileSize: TextView
@@ -90,14 +96,13 @@ class MainActivity : AppCompatActivity() {
     private val receiveManager = MultiFileReceiveManager()
     private var currentFileKey: String? = null
     private var receiveState = ReceiveState() // 保持兼容，实际使用 receiveManager
-    private var lastProcessTime = 0L
-    private val throttleMs = 80L
-    // FPS tracking
-    private var lastDetectionTime = 0L
+    private var isProcessing = false
+    // FPS tracking (sliding window)
+    private val fpsTimestamps = ArrayDeque<Long>(8)
     private var scanFpsValue = 0f
-    private var analysisResolution = "" // captured from first frame
+    private var analysisResolution = "" // e.g. "960×1080"
     // Pending assembled data awaiting user save decision
-    private var pendingData: ByteArray? = null
+    private var pendingTempFile: File? = null
     private var pendingFileName: String? = null
     private var pendingFileKey: String? = null
     private var currentMode = ScanMode.CHUNKED
@@ -155,12 +160,14 @@ class MainActivity : AppCompatActivity() {
     private fun setupBackPress() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (progressOverlay.visibility == View.VISIBLE) {
-                    cancelReceiving()
-                } else {
-                    isEnabled = false
-                    onBackPressedDispatcher.onBackPressed()
-                    isEnabled = true
+                when {
+                    progressOverlay.visibility == View.VISIBLE -> cancelReceiving()
+                    previewView.visibility == View.VISIBLE -> cancelReceiving()
+                    else -> {
+                        isEnabled = false
+                        onBackPressedDispatcher.onBackPressed()
+                        isEnabled = true
+                    }
                 }
             }
         })
@@ -199,6 +206,7 @@ class MainActivity : AppCompatActivity() {
         fileMetaText = findViewById(R.id.fileMetaText)
         receivedChunksText = findViewById(R.id.receivedChunksText)
         missingChunksText = findViewById(R.id.missingChunksText)
+        timeEstimateText = findViewById(R.id.timeEstimateText)
         resultPanel = findViewById(R.id.resultPanel)
         resultFileName = findViewById(R.id.resultFileName)
         resultFileSize = findViewById(R.id.resultFileSize)
@@ -276,8 +284,8 @@ class MainActivity : AppCompatActivity() {
         scanFrame.visibility = View.VISIBLE
         scanHint.visibility = View.VISIBLE
         scanFps.visibility = View.VISIBLE
-        scanFps.text = "扫描 -- fps"
-        lastDetectionTime = 0L
+        scanFps.text = "扫描 --fps"
+        fpsTimestamps.clear()
         scanFpsValue = 0f
         analysisResolution = ""
         scanHint.text = getScanHint()
@@ -294,7 +302,6 @@ class MainActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
-    @Suppress("DEPRECATION")
     private fun bindCameraUseCases() {
         val provider = cameraProvider ?: return
 
@@ -302,8 +309,15 @@ class MainActivity : AppCompatActivity() {
             .build()
             .also { it.surfaceProvider = previewView.surfaceProvider }
 
+        val resolutionSelector = ResolutionSelector.Builder()
+            .setResolutionStrategy(ResolutionStrategy(
+                Size(960, 960),
+                ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER
+            ))
+            .build()
+
         imageAnalysis = ImageAnalysis.Builder()
-            .setTargetResolution(Size(640, 480))
+            .setResolutionSelector(resolutionSelector)
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
             .also {
@@ -421,27 +435,27 @@ class MainActivity : AppCompatActivity() {
         outFile.writeText(contents.joinToString("\n\n---\n\n"))
         receiveState.outputPath = outFile.absolutePath
         receiveState.fileName = outFile.name
-        receiveState.outputSize = outFile.length().toInt()
+        receiveState.outputSize = outFile.length()
 
         LogCollector.i(TAG, "原始数据已保存: ${outFile.absolutePath}")
         showRawResult(contents)
     }
 
     private fun processImage(imageProxy: ImageProxy) {
-        val now = System.currentTimeMillis()
-        if (now - lastProcessTime < throttleMs) {
+        if (isProcessing) {
             imageProxy.close()
             return
         }
-        lastProcessTime = now
-        val submitTime = now
+        isProcessing = true
+        val submitTime = System.currentTimeMillis()
 
         val mediaImage = imageProxy.image ?: run {
+            isProcessing = false
             imageProxy.close()
             return
         }
 
-        // Capture analysis resolution from first frame
+        // Capture actual camera resolution from first frame
         if (analysisResolution.isEmpty()) {
             analysisResolution = "${mediaImage.width}×${mediaImage.height}"
         }
@@ -450,22 +464,26 @@ class MainActivity : AppCompatActivity() {
 
         barcodeScanner.process(image)
             .addOnSuccessListener { barcodes ->
-                if (barcodes.isNotEmpty()) {
-                    val elapsed = System.currentTimeMillis() - submitTime
-
-                    // Track FPS
-                    if (lastDetectionTime > 0) {
-                        val interval = now - lastDetectionTime
-                        scanFpsValue = (1000f / interval).coerceIn(0.1f, 60f)
+                // Update FPS with sliding window
+                val now = System.currentTimeMillis()
+                fpsTimestamps.addLast(now)
+                while (fpsTimestamps.size > 8) fpsTimestamps.removeFirst()
+                if (fpsTimestamps.size >= 2) {
+                    val span = fpsTimestamps.last() - fpsTimestamps.first()
+                    if (span > 0) {
+                        scanFpsValue = ((fpsTimestamps.size - 1) * 1000f / span).coerceIn(0.1f, 60f)
                     }
-                    lastDetectionTime = now
-                    scanFps.text = "${analysisResolution}  扫描 %.1f fps  %dms".format(scanFpsValue, elapsed)
-                    scanFps.visibility = View.VISIBLE
+                }
+                val elapsed = now - submitTime
+                scanFps.text = "%s  %.1ffps  %dms".format(analysisResolution, scanFpsValue, elapsed)
+                scanFps.visibility = View.VISIBLE
 
+                if (barcodes.isNotEmpty()) {
                     onDetect(barcodes)
                 }
             }
             .addOnCompleteListener {
+                isProcessing = false
                 imageProxy.close()
             }
     }
@@ -498,7 +516,7 @@ class MainActivity : AppCompatActivity() {
         outFile.writeText(contents.joinToString("\n\n---\n\n"))
         receiveState.outputPath = outFile.absolutePath
         receiveState.fileName = outFile.name
-        receiveState.outputSize = outFile.length().toInt()
+        receiveState.outputSize = outFile.length()
 
         LogCollector.i(TAG, "原始数据已保存: ${outFile.absolutePath}")
         showRawResult(contents)
@@ -609,7 +627,15 @@ class MainActivity : AppCompatActivity() {
     private fun showReceiving() {
         progressOverlay.visibility = View.VISIBLE
         detailPanel.visibility = View.VISIBLE
-        scanHint.text = getScanHint()
+        scanHint.visibility = View.GONE
+        receiveStartTime = System.currentTimeMillis()
+
+        // 立即填充占位文本，确保面板首次可见时不为空
+        fileInfoText.text = "正在接收..."
+        receivedChunksText.text = "已收到: --"
+        missingChunksText.text = "缺失: --"
+        missingChunksText.visibility = View.VISIBLE
+
         updateProgress()
 
         // 显示保存位置提示
@@ -659,7 +685,7 @@ class MainActivity : AppCompatActivity() {
             // chunk 状态
             val total = currentFile.totalChunks ?: 0
             val receivedIds = currentFile.chunks.keys.sorted()
-            val missingIds = (0 until total).filter { it !in currentFile.chunks }
+            val missingIds = (0 until total).filter { !currentFile.chunks.containsKey(it) }
 
             receivedChunksText.text = "已收到 (${receivedIds.size}): ${receivedIds.truncate(15)}"
             if (missingIds.isEmpty()) {
@@ -667,6 +693,18 @@ class MainActivity : AppCompatActivity() {
             } else {
                 missingChunksText.visibility = View.VISIBLE
                 missingChunksText.text = "缺失 (${missingIds.size}): ${missingIds.truncate(15)}"
+            }
+
+            // Time estimate: elapsed / estimated total based on current speed
+            val elapsed = (System.currentTimeMillis() - receiveStartTime) / 1000.0
+            val speed = if (elapsed > 0.5) totalReceived / elapsed else 0.0
+            if (speed > 0 && totalExpected > totalReceived) {
+                val eta = totalExpected / speed
+                timeEstimateText.text = "%.1fs / %.1fs".format(elapsed, eta)
+                timeEstimateText.visibility = View.VISIBLE
+            } else {
+                timeEstimateText.text = "%.1fs / --".format(elapsed)
+                timeEstimateText.visibility = View.VISIBLE
             }
         }
     }
@@ -683,11 +721,12 @@ class MainActivity : AppCompatActivity() {
         withContext(Dispatchers.IO) {
             try {
                 val sortedKeys = fileState.chunks.keys.sorted()
-                val fullData = mutableListOf<Byte>()
+                val estimatedSize = sortedKeys.size * 256 // rough estimate
+                val bos = ByteArrayOutputStream(estimatedSize)
                 for (key in sortedKeys) {
-                    fullData.addAll(fileState.chunks[key]!!.toList())
+                    bos.write(fileState.chunks[key]!!)
                 }
-                var data = fullData.toByteArray()
+                var data = bos.toByteArray()
 
                 if (fileState.totalChunks != null &&
                     fileState.receivedCount < fileState.totalChunks!!) {
@@ -724,7 +763,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 // File size verification
-                if (fileState.fileSize != null && data.size != fileState.fileSize) {
+                if (fileState.fileSize != null && data.size.toLong() != fileState.fileSize) {
                     LogCollector.w(TAG, "[${fileState.fileKey}] File size mismatch: expected=${fileState.fileSize}, actual=${data.size}")
                     fileState.appState = AppState.ERROR
                     fileState.lastError = "文件大小不匹配: 期望 ${fileState.fileSize}, 实际 ${data.size}"
@@ -752,7 +791,7 @@ class MainActivity : AppCompatActivity() {
                     LogCollector.i(TAG, "[${fileState.fileKey}] CRC32 verified")
                 }
 
-                fileState.outputSize = data.size
+                fileState.outputSize = data.size.toLong()
 
                 val outName = if (!fileState.fileName.isNullOrEmpty()) {
                     fileState.fileName!!
@@ -760,18 +799,22 @@ class MainActivity : AppCompatActivity() {
                     detectExtension(data)
                 }
 
-                // Don't write file yet — show save dialog first
-                pendingData = data
+                // Write to temp file instead of keeping ByteArray in memory
+                val tempFile = File.createTempFile("qrcast_pending_", ".tmp", cacheDir)
+                tempFile.deleteOnExit()
+                tempFile.writeBytes(data)
+
+                pendingTempFile = tempFile
                 pendingFileName = outName
                 pendingFileKey = fileState.fileKey
 
                 fileState.appState = AppState.DONE
-                LogCollector.i(TAG, "[${fileState.fileKey}] File assembled: $outName (${formatBytes(data.size)})")
+                LogCollector.i(TAG, "[${fileState.fileKey}] File assembled: $outName (${formatBytes(data.size.toLong())})")
 
                 withContext(Dispatchers.Main) {
                     stopCamera()
                     updateMultiFileProgress()
-                    showSaveDialog(outName, data.size)
+                    showSaveDialog(outName, data.size.toLong())
                 }
             } catch (e: Exception) {
                 LogCollector.e(TAG, "[$fileState.fileKey] 文件组装失败", e)
@@ -808,7 +851,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             val buffer = ByteArrayOutputStream()
-            val buf = ByteArray(8192)
+            val buf = ByteArray(65536)
             var len: Int
             while (extractor.read(buf).also { len = it } != -1) {
                 buffer.write(buf, 0, len)
@@ -861,8 +904,8 @@ class MainActivity : AppCompatActivity() {
         btnContinue.visibility = if (showContinue) View.VISIBLE else View.GONE
     }
 
-    private fun showSaveDialog(fileName: String, fileSize: Int) {
-        val data = pendingData ?: return
+    private fun showSaveDialog(fileName: String, fileSize: Long) {
+        if (pendingTempFile == null) return
         val message = "文件: $fileName\n大小: ${formatBytes(fileSize)}"
 
         AlertDialog.Builder(this)
@@ -875,7 +918,8 @@ class MainActivity : AppCompatActivity() {
                 saveAsLauncher.launch(fileName)
             }
             .setNegativeButton("取消") { _, _ ->
-                pendingData = null
+                pendingTempFile?.delete()
+                pendingTempFile = null
                 pendingFileName = null
                 pendingFileKey = null
             }
@@ -884,7 +928,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveToDefaultPath() {
-        val data = pendingData ?: return
+        val tempFile = pendingTempFile ?: return
         val outName = pendingFileName ?: return
         val fileKey = pendingFileKey ?: return
 
@@ -892,12 +936,13 @@ class MainActivity : AppCompatActivity() {
         if (!outDir.exists()) outDir.mkdirs()
 
         val outFile = File(outDir, outName)
-        outFile.writeBytes(data)
+        tempFile.copyTo(outFile, overwrite = true)
+        tempFile.delete()
 
         val fileState = receiveManager.get(fileKey)
         fileState?.outputPath = outFile.absolutePath
 
-        pendingData = null
+        pendingTempFile = null
         pendingFileName = null
         pendingFileKey = null
 
@@ -906,17 +951,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveToChosenUri(uri: Uri) {
-        val data = pendingData ?: return
+        val tempFile = pendingTempFile ?: return
         val fileKey = pendingFileKey ?: return
 
         try {
             contentResolver.openOutputStream(uri)?.use { output ->
-                output.write(data)
+                tempFile.inputStream().use { input ->
+                    input.copyTo(output)
+                }
             }
             val fileState = receiveManager.get(fileKey)
             fileState?.outputPath = uri.toString()
 
-            pendingData = null
+            tempFile.delete()
+            pendingTempFile = null
             pendingFileName = null
             pendingFileKey = null
 
@@ -1049,7 +1097,7 @@ class MainActivity : AppCompatActivity() {
         cameraProvider?.unbindAll()
     }
 
-    private fun formatBytes(bytes: Int): String {
+    private fun formatBytes(bytes: Long): String {
         return when {
             bytes < 1024 -> "$bytes B"
             bytes < 1024 * 1024 -> String.format("%.2f KB", bytes / 1024.0)
@@ -1086,13 +1134,13 @@ class ReceiveState {
     var receivedCount = 0
     var lastError: String? = null
     var outputPath: String? = null
-    var outputSize = 0
+    var outputSize = 0L
     var fileName: String? = null
     var fileCrc32: Long? = null
-    var fileSize: Int? = null
+    var fileSize: Long? = null
     var isCompressed: Boolean = false
     var missingChunks = listOf<Int>()
-    val chunks = mutableMapOf<Int, ByteArray>()
+    val chunks = ConcurrentHashMap<Int, ByteArray>()
 
     val isComplete: Boolean
         get() = totalChunks != null && receivedCount == totalChunks
@@ -1104,7 +1152,7 @@ data class ChunkInfo(
     val payload: ByteArray,
     val fileName: String? = null,
     val fileCrc32: Long? = null,
-    val fileSize: Int? = null,
+    val fileSize: Long? = null,
     val isCompressed: Boolean = false
 ) {
     override fun equals(other: Any?): Boolean {
