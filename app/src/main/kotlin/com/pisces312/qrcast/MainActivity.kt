@@ -31,11 +31,13 @@ import com.google.mlkit.vision.common.InputImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.Executors
 import java.util.zip.CRC32
+import org.apache.commons.compress.archivers.sevenz.SevenZFile
 
 class MainActivity : AppCompatActivity() {
 
@@ -73,7 +75,9 @@ class MainActivity : AppCompatActivity() {
     private val barcodeScanner: BarcodeScanner = BarcodeScanning.getClient()
     private val cameraExecutor = Executors.newSingleThreadExecutor()
 
-    private var receiveState = ReceiveState()
+    private val receiveManager = MultiFileReceiveManager()
+    private var currentFileKey: String? = null
+    private var receiveState = ReceiveState() // 保持兼容，实际使用 receiveManager
     private var lastProcessTime = 0L
     private val throttleMs = 200
     private var currentMode = ScanMode.CHUNKED
@@ -146,6 +150,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<LinearLayout>(R.id.btnGallery).setOnClickListener { onGallerySelected() }
         findViewById<ImageButton>(R.id.btnSettings).setOnClickListener { openSettings() }
         findViewById<ImageButton>(R.id.btnLogs).setOnClickListener { openLogs() }
+        findViewById<ImageButton>(R.id.btnHelp).setOnClickListener { openHelp() }
         findViewById<Button>(R.id.btnOpen).setOnClickListener { openFile() }
         findViewById<Button>(R.id.btnShare).setOnClickListener { shareFile() }
         findViewById<Button>(R.id.btnReset).setOnClickListener { reset() }
@@ -196,6 +201,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun openLogs() {
         startActivity(Intent(this, LogActivity::class.java))
+    }
+
+    private fun openHelp() {
+        startActivity(Intent(this, HelpActivity::class.java))
     }
 
     private fun startCameraMode() {
@@ -278,13 +287,32 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             } else {
-                // Mono path: use ML Kit directly
-                val allBarcodes = mutableListOf<Barcode>()
+                // Mono path: use ML Kit directly, always try chunked protocol first
+                val allChunks = mutableListOf<ChunkInfo>()
+                val rawContents = mutableListOf<String>()
                 for (uri in uris) {
                     try {
                         val image = InputImage.fromFilePath(this@MainActivity, uri)
                         val barcodes = barcodeScanner.process(image).await()
-                        allBarcodes.addAll(barcodes)
+                        for (barcode in barcodes) {
+                            val raw = barcode.rawBytes
+                            if (raw != null) {
+                                val chunk = parsePayloadV2(raw)
+                                if (chunk != null) {
+                                    allChunks.add(chunk)
+                                } else {
+                                    // Not a chunked payload, treat as raw text
+                                    val text = try {
+                                        String(raw, Charsets.UTF_8)
+                                    } catch (e: Exception) {
+                                        raw.joinToString(" ") { "0x%02X".format(it) }
+                                    }
+                                    rawContents.add(text)
+                                }
+                            } else if (barcode.displayValue != null) {
+                                rawContents.add(barcode.displayValue!!)
+                            }
+                        }
                     } catch (e: Exception) {
                         LogCollector.e(TAG, "图库图片解析失败: $uri", e)
                     }
@@ -292,14 +320,37 @@ class MainActivity : AppCompatActivity() {
 
                 withContext(Dispatchers.Main) {
                     loadingIndicator.visibility = View.GONE
-                    if (allBarcodes.isNotEmpty()) {
-                        onDetect(allBarcodes)
-                    } else {
-                        showError("未在图片中检测到二维码")
+                    when {
+                        allChunks.isNotEmpty() -> {
+                            // File chunks detected, process as file reception
+                            processChunkList(allChunks)
+                        }
+                        rawContents.isNotEmpty() -> {
+                            // Raw text only
+                            onDetectRawFromGallery(rawContents)
+                        }
+                        else -> {
+                            showError("未在图片中检测到二维码")
+                        }
                     }
                 }
             }
         }
+    }
+
+    private fun onDetectRawFromGallery(contents: List<String>) {
+        stopCamera()
+
+        val outDir = SettingsActivity.getOutputDir(this)
+        if (!outDir.exists()) outDir.mkdirs()
+        val outFile = File(outDir, SettingsActivity.generateTimestampFileName("txt"))
+        outFile.writeText(contents.joinToString("\n\n---\n\n"))
+        receiveState.outputPath = outFile.absolutePath
+        receiveState.fileName = outFile.name
+        receiveState.outputSize = outFile.length().toInt()
+
+        LogCollector.i(TAG, "原始数据已保存: ${outFile.absolutePath}")
+        showRawResult(contents)
     }
 
     private fun processImage(imageProxy: ImageProxy) {
@@ -360,6 +411,14 @@ class MainActivity : AppCompatActivity() {
 
         LogCollector.i(TAG, "原始数据已保存: ${outFile.absolutePath}")
         showRawResult(contents)
+        showSaveLocation(outDir, outFile.name)
+    }
+
+    private fun showSaveLocation(outDir: File, fileName: String) {
+        val locationText = "文件已保存到: ${outDir.absolutePath}/$fileName"
+        // Show in result content area
+        resultContent.visibility = View.VISIBLE
+        resultContent.text = locationText
     }
 
     private fun showRawResult(contents: List<String>) {
@@ -372,11 +431,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleChunkedMode(barcodes: List<Barcode>) {
-        if (receiveState.appState != AppState.SCANNING &&
-            receiveState.appState != AppState.RECEIVING) {
-            return
-        }
-
         val potentialChunks = mutableListOf<ChunkInfo>()
         for (barcode in barcodes) {
             val raw = barcode.rawBytes ?: continue
@@ -390,8 +444,32 @@ class MainActivity : AppCompatActivity() {
     private fun processChunkList(potentialChunks: List<ChunkInfo>) {
         if (potentialChunks.isEmpty()) return
 
+        // 按文件分组处理
+        val chunksByFile = potentialChunks.groupBy { receiveManager.generateFileKey(it) }
+        
+        for ((fileKey, chunks) in chunksByFile) {
+            processFileChunks(fileKey, chunks)
+        }
+    }
+
+    private fun processFileChunks(fileKey: String, chunks: List<ChunkInfo>) {
+        if (chunks.isEmpty()) return
+
+        val firstChunk = chunks.first()
+        val fileState = receiveManager.getOrCreate(fileKey, firstChunk)
+
+        if (fileState.appState != AppState.SCANNING &&
+            fileState.appState != AppState.RECEIVING) {
+            return
+        }
+
+        // 多文件：如果当前没有聚焦文件，聚焦到第一个活跃文件
+        if (currentFileKey == null && fileState.appState == AppState.RECEIVING) {
+            currentFileKey = fileKey
+        }
+
         val totalCounts = mutableMapOf<Int, Int>()
-        for (chunk in potentialChunks) {
+        for (chunk in chunks) {
             totalCounts[chunk.total] = (totalCounts[chunk.total] ?: 0) + 1
         }
 
@@ -404,41 +482,35 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        val validChunks = potentialChunks.filter {
+        val validChunks = chunks.filter {
             consensusTotal != null && it.total == consensusTotal && it.seq < it.total
         }
 
         var hasNewChunk = false
         for (chunk in validChunks) {
-            if (receiveState.chunks.containsKey(chunk.seq)) continue
+            if (fileState.chunks.containsKey(chunk.seq)) continue
 
-            if (receiveState.totalChunks == null) {
-                receiveState.totalChunks = chunk.total
-                receiveState.appState = AppState.RECEIVING
-                runOnUiThread { showReceiving() }
+            if (fileState.totalChunks == null) {
+                fileState.totalChunks = chunk.total
+                fileState.appState = AppState.RECEIVING
+                if (currentFileKey == null) {
+                    currentFileKey = fileKey
+                    runOnUiThread { showReceiving() }
+                }
             }
 
-            // seq==0 carries metadata
-            if (chunk.seq == 0) {
-                receiveState.fileName = chunk.fileName
-                receiveState.fileCrc32 = chunk.fileCrc32
-                receiveState.fileSize = chunk.fileSize
-                receiveState.isCompressed = chunk.isCompressed
-                LogCollector.i(TAG, "收到元数据: name=${chunk.fileName}, size=${chunk.fileSize}, compressed=${chunk.isCompressed}")
-            }
-
-            receiveState.chunks[chunk.seq] = chunk.payload
-            receiveState.receivedCount = receiveState.chunks.size
+            fileState.chunks[chunk.seq] = chunk.payload
+            fileState.receivedCount = fileState.chunks.size
             hasNewChunk = true
 
-            LogCollector.d(TAG, "收到分块 ${chunk.seq + 1}/${chunk.total}")
+            LogCollector.d(TAG, "[$fileKey] 收到分块 ${chunk.seq + 1}/${chunk.total}")
         }
 
         if (hasNewChunk) {
-            runOnUiThread { updateProgress() }
+            runOnUiThread { updateMultiFileProgress() }
 
-            if (receiveState.isComplete) {
-                lifecycleScope.launch { assemble() }
+            if (fileState.isComplete) {
+                lifecycleScope.launch { assembleFile(fileState) }
             }
         }
     }
@@ -450,6 +522,10 @@ class MainActivity : AppCompatActivity() {
         detailPanel.visibility = View.VISIBLE
         scanHint.text = getScanHint()
         updateProgress()
+
+        // 显示保存位置提示
+        val outDir = SettingsActivity.getOutputDir(this)
+        fileMetaText.text = "保存位置: ${outDir.absolutePath}"
     }
 
     private fun getScanHint(): String {
@@ -465,37 +541,44 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateProgress() {
-        val total = receiveState.totalChunks ?: 0
-        val received = receiveState.receivedCount
-        val pct = if (total > 0) (received * 100 / total) else 0
+        updateMultiFileProgress()
+    }
 
-        progressText.text = "$received/$total"
+    private fun updateMultiFileProgress() {
+        val activeFiles = receiveManager.getActiveFiles()
+        val completedFiles = receiveManager.getCompletedFiles()
+        
+        if (activeFiles.isEmpty() && completedFiles.isEmpty()) return
+
+        // 显示总体进度
+        val totalReceived = activeFiles.sumOf { it.receivedCount } + completedFiles.sumOf { it.totalChunks ?: 0 }
+        val totalExpected = activeFiles.sumOf { it.totalChunks ?: 0 } + completedFiles.sumOf { it.totalChunks ?: 0 }
+        val pct = if (totalExpected > 0) (totalReceived * 100 / totalExpected) else 0
+
+        progressText.text = "$totalReceived/$totalExpected"
         progressBar.progress = pct
         progressPercent.text = "$pct%"
 
-        // 文件信息
-        val name = receiveState.fileName
-        val size = receiveState.fileSize
-        if (name != null && size != null) {
-            fileInfoText.text = name
-            val meta = StringBuilder("原始大小: ${formatBytes(size)}")
-            if (receiveState.isCompressed) meta.append(" · 7z压缩")
+        // 显示当前文件信息
+        val currentFile = activeFiles.firstOrNull() ?: completedFiles.lastOrNull()
+        if (currentFile != null) {
+            fileInfoText.text = currentFile.displayName
+            val meta = StringBuilder("原始大小: ${formatBytes(currentFile.fileSize ?: 0)}")
+            if (currentFile.isCompressed) meta.append(" · 7z压缩")
             fileMetaText.text = meta.toString()
-        } else {
-            fileInfoText.text = "等待元数据..."
-            fileMetaText.text = "扫描第0块获取文件信息"
-        }
 
-        // chunk 状态
-        val receivedIds = receiveState.chunks.keys.sorted()
-        val missingIds = (0 until total).filter { it !in receiveState.chunks }
+            // chunk 状态
+            val total = currentFile.totalChunks ?: 0
+            val receivedIds = currentFile.chunks.keys.sorted()
+            val missingIds = (0 until total).filter { it !in currentFile.chunks }
 
-        receivedChunksText.text = "已收到 (${receivedIds.size}): ${receivedIds.truncate(15)}"
-        if (missingIds.isEmpty()) {
-            missingChunksText.visibility = View.GONE
-        } else {
-            missingChunksText.visibility = View.VISIBLE
-            missingChunksText.text = "缺失 (${missingIds.size}): ${missingIds.truncate(15)}"
+            receivedChunksText.text = "已收到 (${receivedIds.size}): ${receivedIds.truncate(15)}"
+            if (missingIds.isEmpty()) {
+                missingChunksText.visibility = View.GONE
+            } else {
+                missingChunksText.visibility = View.VISIBLE
+                missingChunksText.text = "缺失 (${missingIds.size}): ${missingIds.truncate(15)}"
+            }
         }
     }
 
@@ -504,50 +587,89 @@ class MainActivity : AppCompatActivity() {
         else "${take(max).joinToString(", ")}... 等${size}块"
     }
 
-    private suspend fun assemble() {
-        if (receiveState.appState == AppState.ASSEMBLING) return
-        receiveState.appState = AppState.ASSEMBLING
-
-        withContext(Dispatchers.Main) {
-            progressOverlay.visibility = View.GONE
-            loadingIndicator.visibility = View.VISIBLE
-            stopCamera()
-        }
+    private suspend fun assembleFile(fileState: FileReceiveState) {
+        if (fileState.appState == AppState.ASSEMBLING) return
+        fileState.appState = AppState.ASSEMBLING
 
         withContext(Dispatchers.IO) {
             try {
-                val sortedKeys = receiveState.chunks.keys.sorted()
+                val sortedKeys = fileState.chunks.keys.sorted()
                 val fullData = mutableListOf<Byte>()
                 for (key in sortedKeys) {
-                    fullData.addAll(receiveState.chunks[key]!!.toList())
+                    fullData.addAll(fileState.chunks[key]!!.toList())
                 }
-                val data = fullData.toByteArray()
+                var data = fullData.toByteArray()
 
-                if (receiveState.totalChunks != null &&
-                    receiveState.receivedCount < receiveState.totalChunks!!) {
-                    val missing = (0 until receiveState.totalChunks!!).filter {
-                        !receiveState.chunks.containsKey(it)
+                if (fileState.totalChunks != null &&
+                    fileState.receivedCount < fileState.totalChunks!!) {
+                    val missing = (0 until fileState.totalChunks!!).filter {
+                        !fileState.chunks.containsKey(it)
                     }
 
-                    receiveState.missingChunks = missing
-                    receiveState.lastError = "不完整: ${receiveState.receivedCount}/${receiveState.totalChunks}，" +
+                    fileState.missingChunks = missing
+                    fileState.lastError = "不完整: ${fileState.receivedCount}/${fileState.totalChunks}，" +
                             "缺失分块: ${missing.take(10).joinToString(", ")}" +
                             if (missing.size > 10) "..." else ""
 
+                    fileState.appState = AppState.ERROR
                     withContext(Dispatchers.Main) {
-                        showError(receiveState.lastError!!, missing.isNotEmpty())
+                        updateMultiFileProgress()
                     }
                     return@withContext
                 }
 
-                receiveState.outputSize = data.size
+                // 7z decompression (must happen before CRC32/size checks)
+                if (fileState.isCompressed) {
+                    LogCollector.i(TAG, "[${fileState.fileKey}] Decompressing 7z data (${data.size} bytes)")
+                    val decompressed = decompress7z(data)
+                    if (decompressed == null) {
+                        fileState.appState = AppState.ERROR
+                        fileState.lastError = "7z 解压失败"
+                        withContext(Dispatchers.Main) {
+                            updateMultiFileProgress()
+                        }
+                        return@withContext
+                    }
+                    LogCollector.i(TAG, "[${fileState.fileKey}] Decompressed: ${decompressed.size} bytes")
+                    data = decompressed
+                }
+
+                // File size verification
+                if (fileState.fileSize != null && data.size != fileState.fileSize) {
+                    LogCollector.w(TAG, "[${fileState.fileKey}] File size mismatch: expected=${fileState.fileSize}, actual=${data.size}")
+                    fileState.appState = AppState.ERROR
+                    fileState.lastError = "文件大小不匹配: 期望 ${fileState.fileSize}, 实际 ${data.size}"
+                    withContext(Dispatchers.Main) {
+                        updateMultiFileProgress()
+                    }
+                    return@withContext
+                }
+
+                // CRC32 verification (on decompressed data)
+                val expectedCrc = fileState.fileCrc32
+                if (expectedCrc != null) {
+                    val crc = CRC32()
+                    crc.update(data)
+                    val actualCrc = crc.value
+                    if (actualCrc != expectedCrc) {
+                        LogCollector.w(TAG, "[${fileState.fileKey}] CRC32 mismatch: expected=$expectedCrc, actual=$actualCrc")
+                        fileState.appState = AppState.ERROR
+                        fileState.lastError = "CRC32 校验失败"
+                        withContext(Dispatchers.Main) {
+                            updateMultiFileProgress()
+                        }
+                        return@withContext
+                    }
+                    LogCollector.i(TAG, "[${fileState.fileKey}] CRC32 verified")
+                }
+
+                fileState.outputSize = data.size
 
                 val outDir = SettingsActivity.getOutputDir(this@MainActivity)
                 if (!outDir.exists()) outDir.mkdirs()
 
-                // Use filename from metadata if available, otherwise detect by magic bytes
-                val outName = if (!receiveState.fileName.isNullOrEmpty()) {
-                    receiveState.fileName!!
+                val outName = if (!fileState.fileName.isNullOrEmpty()) {
+                    fileState.fileName!!
                 } else {
                     detectExtension(data)
                 }
@@ -555,34 +677,20 @@ class MainActivity : AppCompatActivity() {
                 val outFile = File(outDir, outName)
                 outFile.writeBytes(data)
 
-                receiveState.outputPath = outFile.absolutePath
-                receiveState.fileName = outName
+                fileState.outputPath = outFile.absolutePath
 
-                // CRC32 verification
-                val expectedCrc = receiveState.fileCrc32
-                if (expectedCrc != null) {
-                    val crc = CRC32()
-                    crc.update(data)
-                    val actualCrc = crc.value
-                    if (actualCrc != expectedCrc) {
-                        LogCollector.w(TAG, "CRC32 不匹配: expected=$expectedCrc, actual=$actualCrc")
-                        withContext(Dispatchers.Main) {
-                            showError("警告: CRC32 校验失败，文件可能损坏", false)
-                        }
-                        return@withContext
-                    }
-                    LogCollector.i(TAG, "CRC32 校验通过")
-                }
-
-                LogCollector.i(TAG, "文件接收完成: $outName (${formatBytes(data.size)})")
+                fileState.appState = AppState.DONE
+                LogCollector.i(TAG, "[${fileState.fileKey}] File received: $outName (${formatBytes(data.size)})")
 
                 withContext(Dispatchers.Main) {
-                    showDone()
+                    updateMultiFileProgress()
                 }
             } catch (e: Exception) {
-                LogCollector.e(TAG, "文件组装失败", e)
+                LogCollector.e(TAG, "[$fileState.fileKey] 文件组装失败", e)
+                fileState.appState = AppState.ERROR
+                fileState.lastError = e.message
                 withContext(Dispatchers.Main) {
-                    showError("文件组装失败: ${e.message}")
+                    updateMultiFileProgress()
                 }
             }
         }
@@ -598,17 +706,62 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun decompress7z(data: ByteArray): ByteArray? {
+        return try {
+            val tempFile = File.createTempFile("qrcast_", ".7z", cacheDir)
+            tempFile.deleteOnExit()
+            tempFile.writeBytes(data)
+
+            val extractor = SevenZFile.builder().setFile(tempFile).get()
+            val entry = extractor.nextEntry ?: run {
+                extractor.close()
+                tempFile.delete()
+                return null
+            }
+
+            val buffer = ByteArrayOutputStream()
+            val buf = ByteArray(8192)
+            var len: Int
+            while (extractor.read(buf).also { len = it } != -1) {
+                buffer.write(buf, 0, len)
+            }
+            extractor.close()
+            tempFile.delete()
+            buffer.toByteArray()
+        } catch (e: Exception) {
+            LogCollector.e(TAG, "7z decompression failed", e)
+            null
+        }
+    }
+
     private fun showDone() {
         loadingIndicator.visibility = View.GONE
         progressOverlay.visibility = View.GONE
         detailPanel.visibility = View.GONE
         resultPanel.visibility = View.VISIBLE
-        findViewById<TextView>(R.id.resultTitle).text = "接收完成！"
-        resultFileName.visibility = View.VISIBLE
-        resultFileSize.visibility = View.VISIBLE
-        resultContent.visibility = View.GONE
-        resultFileName.text = receiveState.fileName
-        resultFileSize.text = formatBytes(receiveState.outputSize)
+        
+        val completedFiles = receiveManager.getCompletedFiles()
+        if (completedFiles.size == 1) {
+            val file = completedFiles.first()
+            findViewById<TextView>(R.id.resultTitle).text = "接收完成！"
+            resultFileName.visibility = View.VISIBLE
+            resultFileSize.visibility = View.VISIBLE
+            resultContent.visibility = View.GONE
+            resultFileName.text = file.displayName
+            resultFileSize.text = formatBytes(file.outputSize)
+        } else {
+            findViewById<TextView>(R.id.resultTitle).text = "接收完成 ${completedFiles.size} 个文件！"
+            resultFileName.visibility = View.VISIBLE
+            resultFileSize.visibility = View.VISIBLE
+            resultContent.visibility = View.VISIBLE
+            val sb = StringBuilder()
+            for (file in completedFiles) {
+                sb.appendLine("${file.displayName} (${formatBytes(file.outputSize)})")
+            }
+            resultFileName.text = ""
+            resultFileSize.text = ""
+            resultContent.text = sb.toString()
+        }
     }
 
     private fun showError(message: String, showContinue: Boolean = false) {
@@ -621,29 +774,61 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openFile() {
-        val path = receiveState.outputPath ?: return
-        val file = File(path)
-        val uri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", file)
-
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, getMimeType(file))
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        val completedFiles = receiveManager.getCompletedFiles()
+        if (completedFiles.isEmpty()) return
+        
+        if (completedFiles.size == 1) {
+            val path = completedFiles[0].outputPath ?: return
+            val file = File(path)
+            val uri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", file)
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, getMimeType(file))
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(intent, "打开文件"))
+        } else {
+            // 多文件：打开输出目录
+            val outDir = SettingsActivity.getOutputDir(this)
+            val uri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", outDir)
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "resource/folder")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(intent, "打开文件夹"))
         }
-        startActivity(Intent.createChooser(intent, "打开文件"))
     }
 
     private fun shareFile() {
-        val path = receiveState.outputPath ?: return
-        val file = File(path)
-        val uri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", file)
-
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = getMimeType(file)
-            putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra(Intent.EXTRA_TEXT, "通过 QR 码接收的文件")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        val completedFiles = receiveManager.getCompletedFiles()
+        if (completedFiles.isEmpty()) return
+        
+        if (completedFiles.size == 1) {
+            val path = completedFiles[0].outputPath ?: return
+            val file = File(path)
+            val uri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", file)
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = getMimeType(file)
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_TEXT, "通过 QR 码接收的文件")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(intent, "分享文件"))
+        } else {
+            // 多文件分享
+            val uris = ArrayList<Uri>()
+            for (fileState in completedFiles) {
+                val path = fileState.outputPath ?: continue
+                val file = File(path)
+                uris.add(FileProvider.getUriForFile(this, "${packageName}.fileprovider", file))
+            }
+            val intent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                type = "*/*"
+                putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+                putExtra(Intent.EXTRA_TEXT, "通过 QR 码接收的 ${completedFiles.size} 个文件")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(intent, "分享文件"))
         }
-        startActivity(Intent.createChooser(intent, "分享文件"))
     }
 
     private fun getMimeType(file: File): String {
@@ -656,6 +841,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun reset() {
+        receiveManager.clear()
+        currentFileKey = null
         receiveState = ReceiveState()
         resultPanel.visibility = View.GONE
         errorPanel.visibility = View.GONE
@@ -672,8 +859,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun continueReceiving() {
-        receiveState.appState = AppState.RECEIVING
-        receiveState.lastError = null
+        val activeFiles = receiveManager.getActiveFiles()
+        for (file in activeFiles) {
+            file.appState = AppState.RECEIVING
+            file.lastError = null
+        }
         errorPanel.visibility = View.GONE
         resultPanel.visibility = View.GONE
         showReceiving()

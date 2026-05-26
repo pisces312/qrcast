@@ -45,6 +45,16 @@
             android:src="@android:drawable/ic_menu_info_details"
             android:contentDescription="@string/view_logs"
             app:tint="@color/white" />
+
+        <ImageButton
+            android:id="@+id/btnHelp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_help"
+            android:contentDescription="帮助"
+            app:tint="@color/white" />
     </LinearLayout>
 
     <!-- QR Type Selection -->

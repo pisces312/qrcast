@@ -37,5 +37,7 @@
     public static final android.os.Parcelable$Creator *;
 }
 
-# Serializable
--keep class * implements java.io.Serializable
+# Apache Commons Compress (7z decompression)
+-keep class org.apache.commons.compress.** { *; }
+-dontwarn org.apache.commons.compress.**
+

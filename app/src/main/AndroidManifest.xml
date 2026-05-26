@@ -33,6 +33,11 @@
             android:exported="false"
             android:theme="@style/Theme.QRCast.ActionBar"
             android:parentActivityName=".MainActivity" />
+        <activity
+            android:name=".HelpActivity"
+            android:exported="false"
+            android:theme="@style/Theme.QRCast.ActionBar"
+            android:parentActivityName=".MainActivity" />
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
