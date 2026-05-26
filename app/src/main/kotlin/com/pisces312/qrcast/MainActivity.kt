@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
+import android.util.Size
 import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
@@ -27,6 +28,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import com.google.mlkit.vision.barcode.BarcodeScanner
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
@@ -74,14 +76,18 @@ class MainActivity : AppCompatActivity() {
 
     private var cameraProvider: ProcessCameraProvider? = null
     private var imageAnalysis: ImageAnalysis? = null
-    private val barcodeScanner: BarcodeScanner = BarcodeScanning.getClient()
+    private val barcodeScanner: BarcodeScanner = BarcodeScanning.getClient(
+        BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+            .build()
+    )
     private val cameraExecutor = Executors.newSingleThreadExecutor()
 
     private val receiveManager = MultiFileReceiveManager()
     private var currentFileKey: String? = null
     private var receiveState = ReceiveState() // 保持兼容，实际使用 receiveManager
     private var lastProcessTime = 0L
-    private val throttleMs = 200
+    private val throttleMs = 80L
     // Pending assembled data awaiting user save decision
     private var pendingData: ByteArray? = null
     private var pendingFileName: String? = null
@@ -249,6 +255,7 @@ class MainActivity : AppCompatActivity() {
             .also { it.surfaceProvider = previewView.surfaceProvider }
 
         imageAnalysis = ImageAnalysis.Builder()
+            .setTargetResolution(Size(640, 480))
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
             .also {
@@ -379,6 +386,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
         lastProcessTime = now
+        val submitTime = now
 
         val mediaImage = imageProxy.image ?: run {
             imageProxy.close()
@@ -390,6 +398,8 @@ class MainActivity : AppCompatActivity() {
         barcodeScanner.process(image)
             .addOnSuccessListener { barcodes ->
                 if (barcodes.isNotEmpty()) {
+                    val elapsed = System.currentTimeMillis() - submitTime
+                    LogCollector.d(TAG, "ML Kit scan: ${barcodes.size} code(s) in ${elapsed}ms")
                     onDetect(barcodes)
                 }
             }
