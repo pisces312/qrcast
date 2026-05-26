@@ -56,6 +56,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var previewView: PreviewView
     private lateinit var scanFrame: View
     private lateinit var scanHint: TextView
+    private lateinit var scanFps: TextView
     private lateinit var progressOverlay: LinearLayout
     private lateinit var progressText: TextView
     private lateinit var progressBar: ProgressBar
@@ -88,6 +89,9 @@ class MainActivity : AppCompatActivity() {
     private var receiveState = ReceiveState() // 保持兼容，实际使用 receiveManager
     private var lastProcessTime = 0L
     private val throttleMs = 80L
+    // FPS tracking
+    private var lastDetectionTime = 0L
+    private var scanFpsValue = 0f
     // Pending assembled data awaiting user save decision
     private var pendingData: ByteArray? = null
     private var pendingFileName: String? = null
@@ -148,6 +152,7 @@ class MainActivity : AppCompatActivity() {
         previewView = findViewById(R.id.previewView)
         scanFrame = findViewById(R.id.scanFrame)
         scanHint = findViewById(R.id.scanHint)
+        scanFps = findViewById(R.id.scanFps)
         progressOverlay = findViewById(R.id.progressOverlay)
         progressText = findViewById(R.id.progressText)
         progressBar = findViewById(R.id.progressBar)
@@ -233,6 +238,10 @@ class MainActivity : AppCompatActivity() {
         previewView.visibility = View.VISIBLE
         scanFrame.visibility = View.VISIBLE
         scanHint.visibility = View.VISIBLE
+        scanFps.visibility = View.VISIBLE
+        scanFps.text = "扫描 -- fps"
+        lastDetectionTime = 0L
+        scanFpsValue = 0f
         scanHint.text = getScanHint()
 
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
@@ -400,6 +409,16 @@ class MainActivity : AppCompatActivity() {
                 if (barcodes.isNotEmpty()) {
                     val elapsed = System.currentTimeMillis() - submitTime
                     LogCollector.d(TAG, "ML Kit scan: ${barcodes.size} code(s) in ${elapsed}ms")
+
+                    // Track FPS
+                    if (lastDetectionTime > 0) {
+                        val interval = now - lastDetectionTime
+                        scanFpsValue = (1000f / interval).coerceIn(0.1f, 60f)
+                    }
+                    lastDetectionTime = now
+                    scanFps.text = "扫描 %.1f fps  %dms".format(scanFpsValue, elapsed)
+                    scanFps.visibility = View.VISIBLE
+
                     onDetect(barcodes)
                 }
             }
@@ -948,6 +967,7 @@ class MainActivity : AppCompatActivity() {
         previewView.visibility = View.GONE
         scanFrame.visibility = View.GONE
         scanHint.visibility = View.GONE
+        scanFps.visibility = View.GONE
         sourcePanel.visibility = View.VISIBLE
         stopCamera()
     }
@@ -965,6 +985,7 @@ class MainActivity : AppCompatActivity() {
         previewView.visibility = View.GONE
         scanFrame.visibility = View.GONE
         scanHint.visibility = View.GONE
+        scanFps.visibility = View.GONE
         sourcePanel.visibility = View.VISIBLE
 
         stopCamera()
