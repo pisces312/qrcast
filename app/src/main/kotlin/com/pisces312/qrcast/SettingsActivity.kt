@@ -2,6 +2,7 @@ package com.pisces312.qrcast
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
@@ -12,6 +13,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SwitchCompat
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -24,6 +26,8 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var btnBrowse: Button
     private lateinit var btnSave: Button
     private lateinit var btnReset: Button
+    private lateinit var switchKeepScreenOn: SwitchCompat
+    private lateinit var switchLandscape: SwitchCompat
 
     private val dirPickerLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.OpenDocumentTree()
@@ -51,12 +55,28 @@ class SettingsActivity : AppCompatActivity() {
         btnBrowse = findViewById(R.id.btnBrowse)
         btnSave = findViewById(R.id.btnSave)
         btnReset = findViewById(R.id.btnReset)
+        switchKeepScreenOn = findViewById(R.id.switchKeepScreenOn)
+        switchLandscape = findViewById(R.id.switchLandscape)
 
         loadSettings()
 
         btnBrowse.setOnClickListener { pickDirectory() }
         btnSave.setOnClickListener { saveSettings() }
         btnReset.setOnClickListener { resetSettings() }
+
+        switchKeepScreenOn.setOnCheckedChangeListener { _, isChecked ->
+            getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(KEY_KEEP_SCREEN_ON, isChecked)
+                .apply()
+        }
+
+        switchLandscape.setOnCheckedChangeListener { _, isChecked ->
+            getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(KEY_LANDSCAPE, isChecked)
+                .apply()
+        }
     }
 
     private fun loadSettings() {
@@ -66,6 +86,8 @@ class SettingsActivity : AppCompatActivity() {
 
         tvCurrentDir.text = "当前: ${savedDir ?: defaultDir}"
         etOutputDir.setText(savedDir ?: defaultDir)
+        switchKeepScreenOn.isChecked = prefs.getBoolean(KEY_KEEP_SCREEN_ON, false)
+        switchLandscape.isChecked = prefs.getBoolean(KEY_LANDSCAPE, false)
     }
 
     private fun pickDirectory() {
@@ -122,6 +144,8 @@ class SettingsActivity : AppCompatActivity() {
         private const val TAG = "Settings"
         const val PREFS_NAME = "qr_transfer_settings"
         const val KEY_OUTPUT_DIR = "output_directory"
+        const val KEY_KEEP_SCREEN_ON = "keep_screen_on"
+        const val KEY_LANDSCAPE = "landscape_mode"
 
         fun getDefaultOutputDir(context: Context): File {
             return File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "QRCast")
