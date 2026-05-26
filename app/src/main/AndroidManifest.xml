@@ -24,6 +24,12 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".ScanActivity"
+            android:exported="false"
+            android:theme="@style/Theme.QRCast"
+            android:configChanges="orientation|screenSize|smallestScreenSize"
+            android:parentActivityName=".MainActivity" />
+        <activity
             android:name=".LogActivity"
             android:exported="false"
             android:theme="@style/Theme.QRCast.ActionBar"
