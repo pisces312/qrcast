@@ -287,7 +287,9 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             } else {
-                // Mono path: use ML Kit directly, always try chunked protocol first
+                // Mono path: use ML Kit directly
+                // For chunked protocol, only scan the first image (phone can't scan
+                // multiple QR codes simultaneously from canvas anyway)
                 val allChunks = mutableListOf<ChunkInfo>()
                 val rawContents = mutableListOf<String>()
                 for (uri in uris) {
@@ -313,6 +315,8 @@ class MainActivity : AppCompatActivity() {
                                 rawContents.add(barcode.displayValue!!)
                             }
                         }
+                        // Chunked protocol: only scan one image at a time
+                        if (allChunks.isNotEmpty()) break
                     } catch (e: Exception) {
                         LogCollector.e(TAG, "图库图片解析失败: $uri", e)
                     }
