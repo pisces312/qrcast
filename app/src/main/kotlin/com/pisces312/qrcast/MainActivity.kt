@@ -92,6 +92,7 @@ class MainActivity : AppCompatActivity() {
     // FPS tracking
     private var lastDetectionTime = 0L
     private var scanFpsValue = 0f
+    private var analysisResolution = "" // captured from first frame
     // Pending assembled data awaiting user save decision
     private var pendingData: ByteArray? = null
     private var pendingFileName: String? = null
@@ -242,6 +243,7 @@ class MainActivity : AppCompatActivity() {
         scanFps.text = "扫描 -- fps"
         lastDetectionTime = 0L
         scanFpsValue = 0f
+        analysisResolution = ""
         scanHint.text = getScanHint()
 
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
@@ -402,6 +404,11 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        // Capture analysis resolution from first frame
+        if (analysisResolution.isEmpty()) {
+            analysisResolution = "${mediaImage.width}×${mediaImage.height}"
+        }
+
         val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
 
         barcodeScanner.process(image)
@@ -416,7 +423,7 @@ class MainActivity : AppCompatActivity() {
                         scanFpsValue = (1000f / interval).coerceIn(0.1f, 60f)
                     }
                     lastDetectionTime = now
-                    scanFps.text = "扫描 %.1f fps  %dms".format(scanFpsValue, elapsed)
+                    scanFps.text = "${analysisResolution}  扫描 %.1f fps  %dms".format(scanFpsValue, elapsed)
                     scanFps.visibility = View.VISIBLE
 
                     onDetect(barcodes)
