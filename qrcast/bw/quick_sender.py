@@ -12,7 +12,7 @@ from qrcode.main import QRCode
 from qrcode.constants import ERROR_CORRECT_L
 
 from qrcast.pyminify import minify_python
-from qrcast.bw.v2.generator import calc_qr_max_bytes
+from qrcast.bw.generator import calc_qr_max_bytes
 
 # ===================== Config =====================
 BOX_SIZE = 3

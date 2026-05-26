@@ -13,7 +13,7 @@ import pytest
 import zxingcpp
 from PIL import Image
 
-from qrcast.bw.v2.generator2 import (
+from qrcast.bw.generator2 import (
     QRConfig,
     build_payload,
     generate_qr_images,
@@ -23,13 +23,13 @@ from qrcast.common import parse_payload_v2, BOX_SIZE, BORDER
 
 # Try importing v3 color modules (optional dependency)
 try:
-    from qrcast.v3.generator_bin2 import (
+    from qrcast.rgb.generator_bin2 import (
         QRConfig as ColorQRConfig,
         build_payload as color_build_payload,
         generate_qrgb_bin_images,
         make_rgb_qr_image,
     )
-    from qrcast.v3.verifier_bin2 import (
+    from qrcast.rgb.verifier_bin2 import (
         decode_rgb_qr_cell,
         parse_payload_v2 as color_parse_payload_v2,
     )
@@ -417,7 +417,7 @@ class TestQRConfig:
         assert cfg.qr_max_bytes > cfg.header_len
 
     def test_calc_qr_max_bytes(self):
-        from qrcast.bw.v2.generator2 import calc_qr_max_bytes
+        from qrcast.bw.generator2 import calc_qr_max_bytes
         # Version 1 with L error correction
         cap = calc_qr_max_bytes(1)
         assert cap > 0

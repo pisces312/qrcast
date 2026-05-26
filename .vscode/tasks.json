@@ -1,104 +1,14 @@
 {
     "version": "2.0.0",
     "tasks": [
-        {
-            "label": "V1 Generate (README.md → QR canvases)",
-            "type": "shell",
-            "command": "python",
-            "args": [
-                "-m",
-                "qrcast.bw.v1.generator",
-                "${workspaceFolder}/README.md",
-                "--output-dir",
-                "./tmp"
-            ],
-            "group": "build"
-        },
-        {
-            "label": "V1 Generate with compress",
-            "type": "shell",
-            "command": "python",
-            "args": [
-                "-m",
-                "qrcast.bw.v1.generator",
-                "${workspaceFolder}/README.md",
-                "--output-dir",
-                "./tmp",
-                "--compress"
-            ],
-            "group": "build"
-        },
-        {
-            "label": "V1 Verify Grid",
-            "type": "shell",
-            "command": "python",
-            "args": [
-                "-m",
-                "qrcast.bw.v1.verifier_grid",
-                "./tmp",
-                "./verify_output"
-            ],
-            "group": "test"
-        },
-        {
-            "label": "V2 Generate (README.md → QR canvases)",
-            "type": "shell",
-            "command": "python",
-            "args": [
-                "-m",
-                "qrcast.bw.v2.generator",
-                "${workspaceFolder}/README.md",
-                "--output-dir",
-                "./tmp"
-            ],
-            "group": "build"
-        },
-        {
-            "label": "V2 Generate with compress",
-            "type": "shell",
-            "command": "python",
-            "args": [
-                "-m",
-                "qrcast.bw.v2.generator",
-                "${workspaceFolder}/README.md",
-                "--output-dir",
-                "./tmp",
-                "--compress"
-            ],
-            "group": "build"
-        },
-        {
-            "label": "V2 Quick Send (env.yml → single QR)",
-            "type": "shell",
-            "command": "python",
-            "args": [
-                "-m",
-                "qrcast.bw.v2.quick_sender",
-                "${workspaceFolder}/env.yml",
-                "--ver",
-                "20"
-            ],
-            "group": "build"
-        },
-        {
-            "label": "V2 Verify",
-            "type": "shell",
-            "command": "python",
-            "args": [
-                "-m",
-                "qrcast.bw.verifier",
-                "./tmp",
-                "./tmp/verify_output"
-            ],
-            "group": "test"
-        },
+        
         {
             "label": "V3 Generate Bin",
             "type": "shell",
             "command": "D:\\nili\\dev\\conda_envs\\qrcast_env\\python.exe",
             "args": [
                 "-m",
-                "qrcast.v3.generator_bin",
+                "qrcast.rgb.generator_bin",
                 "C:\\nili\\dev\\git\\bin\\bash.exe",
                 "--output-dir",
                 "./tmp"
@@ -111,8 +21,8 @@
             "command": "D:\\nili\\dev\\conda_envs\\qrcast_env\\python.exe",
             "args": [
                 "-m",
-                "qrcast.v3.generator_bin2",
-                "D:\\nili\\dev\\winutils.7z",
+                "qrcast.rgb.generator_bin2",
+                "${workspaceFolder}/README.md",
                 "--ver",
                 "20",
                 "--output-dir",
@@ -126,7 +36,7 @@
             "command": "python",
             "args": [
                 "-m",
-                "qrcast.v3.generator_text",
+                "qrcast.rgb.generator_text",
                 "${workspaceFolder}/README.md",
                 "--output-dir",
                 "./tmp"
@@ -139,7 +49,7 @@
             "command": "D:\\nili\\dev\\conda_envs\\qrcast_env\\python.exe",
             "args": [
                 "-m",
-                "qrcast.v3.verifier_bin",
+                "qrcast.rgb.verifier_bin",
                 "./tmp",
                 "./tmp/qrgb_bin_verify_output",
                 "--ver",
@@ -153,7 +63,7 @@
             "command": "D:\\nili\\dev\\conda_envs\\qrcast_env\\python.exe",
             "args": [
                 "-m",
-                "qrcast.v3.verifier_text",
+                "qrcast.rgb.verifier_text",
                 "./tmp",
                 "./tmp/qrgb_verify_output"
             ],
@@ -173,13 +83,63 @@
             ],
             "group": "test"
         },
+
+        {
+            "label": "B&W V2 Gen2 - big - individual",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "-m",
+                "qrcast.bw.generator2",
+                "C:\\Windows\\Web\\Wallpaper\\Windows\\img0.jpg",
+                "--ver",
+                "30",
+                "--output-dir",
+                "./tmp",
+                "--mode",
+                "individual"
+            ],
+            "group": "build"
+        },
+
+        {
+            "label": "Display QR - big - Individual",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "-m",
+                "qrcast.bw.display",
+                "./tmp/img0-individual",
+                "-i",
+                "0.2",
+                //"--no-fullscreen"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "B&W V2 Gen2 - individual",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "-m",
+                "qrcast.bw.generator2",
+                "${workspaceFolder}/README.md",
+                "--ver",
+                "20",
+                "--output-dir",
+                "./tmp",
+                "--mode",
+                "individual"
+            ],
+            "group": "build"
+        },
         {
             "label": "B&W V2 Generate2",
             "type": "shell",
             "command": "python",
             "args": [
                 "-m",
-                "qrcast.bw.v2.generator2",
+                "qrcast.bw.generator2",
                 "${workspaceFolder}/README.md",
                 "--ver",
                 "20",
@@ -222,6 +182,20 @@
                 "-m",
                 "qrcast.common",
                 "./tmp"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "Display QR Individual",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "-m",
+                "qrcast.bw.display",
+                "./tmp/README-individual",
+                "-i",
+                "0.1",
+                //"--no-fullscreen"
             ],
             "group": "build"
         }

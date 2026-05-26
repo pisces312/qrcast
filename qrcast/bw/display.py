@@ -4,8 +4,8 @@ Reads QR images from the {filename_base}-individual/ output directory
 and displays them one by one at a specified interval in a fullscreen window.
 
 Usage:
-    python -m qrcast.bw.v2.display <image_dir> [options]
-    python -m qrcast.bw.v2.display ./tmp/myfile-individual -i 0.5
+    python -m qrcast.bw.display <image_dir> [options]
+    python -m qrcast.bw.display ./tmp/myfile-individual -i 0.5
 """
 
 import argparse

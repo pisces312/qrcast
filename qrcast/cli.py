@@ -6,16 +6,8 @@ import sys
 
 def cmd_generate(args):
     mode = args.mode
-    if mode == "v1":
-        from qrcast.bw.v1.generator import generate_qr_images
-        generate_qr_images(
-            file_path=args.file,
-            base_dir=args.output_dir,
-            compress=args.compress,
-            save_chunks=args.save_chunks,
-        )
-    elif mode == "v2":
-        from qrcast.bw.v2.generator import generate_qr_images
+    if mode == "v2":
+        from qrcast.bw.generator import generate_qr_images
         generate_qr_images(
             file_path=args.file,
             ver=args.ver,
@@ -25,9 +17,9 @@ def cmd_generate(args):
         )
     elif mode == "v3":
         if args.v3_mode == "bin":
-            from qrcast.v3.generator_bin import generate_qr_images
+            from qrcast.rgb.generator_bin import generate_qr_images
         else:
-            from qrcast.v3.generator_text import generate_qr_images
+            from qrcast.rgb.generator_text import generate_qr_images
         generate_qr_images(
             file_path=args.file,
             base_dir=args.output_dir,
@@ -50,40 +42,37 @@ def cmd_display(args):
         from qrcast.common import display_canvases
         display_canvases(args.image_dir, display_sec=args.interval, pattern=args.pattern)
     else:
-        from qrcast.bw.v2.display import display_individual_qr
+        from qrcast.bw.display import display_individual_qr
         display_individual_qr(args.image_dir, interval=args.interval, pattern=args.pattern,
                               fullscreen=not args.no_fullscreen, end_pause=args.end_pause)
 
 
 def cmd_verify(args):
-    if args.version == "v1":
-        from qrcast.bw.v1.verifier_grid import verify_qr_codes
-        verify_qr_codes(args.image_dir, args.output_dir)
-    elif args.version == "v2":
+    if args.version == "v2":
         from qrcast.bw.verifier import verify
         verify(args.image_dir, args.output_dir)
     elif args.version == "v3":
         if args.v3_mode == "bin":
-            from qrcast.v3.verifier_bin import verify
+            from qrcast.rgb.verifier_bin import verify
         else:
-            from qrcast.v3.verifier_text import verify
+            from qrcast.rgb.verifier_text import verify
         verify(args.image_dir, args.output_dir)
 
 
 def cmd_receive(args):
-    if args.version in ("v1", "v2"):
+    if args.version == "v2":
         from qrcast.bw.receiver import receive_loop
         receive_loop(camera_index=args.camera)
     elif args.version == "v3":
         if args.v3_mode == "bin":
-            from qrcast.v3.receiver_bin import receive_loop
+            from qrcast.rgb.receiver_bin import receive_loop
         else:
-            from qrcast.v3.receiver_text import receive_loop
+            from qrcast.rgb.receiver_text import receive_loop
         receive_loop(camera_index=args.camera)
 
 
 def cmd_quick_send(args):
-    from qrcast.bw.v2.quick_sender import send_file
+    from qrcast.bw.quick_sender import send_file
     send_file(args.file, minify=args.minify)
 
 
@@ -96,7 +85,7 @@ def main():
 
     # ── generate ──────────────────────────────────────
     p_gen = subparsers.add_parser("generate", help="Generate QR code canvases from a file")
-    p_gen.add_argument("mode", choices=["v1", "v2", "v3"], help="QR version mode")
+    p_gen.add_argument("mode", choices=["v2", "v3"], help="QR version mode")
     p_gen.add_argument("file", help="File to encode")
     p_gen.add_argument("--output-dir", default="./tmp", help="Output directory (default: ./tmp)")
     p_gen.add_argument("--compress", action="store_true", help="Compress with 7z before encoding")
@@ -124,7 +113,7 @@ def main():
     p_verify = subparsers.add_parser("verify", help="Verify/extract file from saved canvas images")
     p_verify.add_argument("image_dir", help="Directory with canvas images")
     p_verify.add_argument("output_dir", help="Output directory for reconstructed file")
-    p_verify.add_argument("--version", choices=["v1", "v2", "v3"], default="v2",
+    p_verify.add_argument("--version", choices=["v2", "v3"], default="v2",
                           help="QR version of the canvases (default: v2)")
     p_verify.add_argument("--v3-mode", choices=["text", "bin"], default="bin",
                           help="V3 mode: text or bin (default: bin)")
@@ -133,7 +122,7 @@ def main():
     # ── receive ───────────────────────────────────────
     p_recv = subparsers.add_parser("receive", help="Receive file via camera")
     p_recv.add_argument("--camera", type=int, default=0, help="Camera index (default: 0)")
-    p_recv.add_argument("--version", choices=["v1", "v2", "v3"], default="v2",
+    p_recv.add_argument("--version", choices=["v2", "v3"], default="v2",
                         help="QR version to decode (default: v2)")
     p_recv.add_argument("--v3-mode", choices=["text", "bin"], default="bin",
                         help="V3 mode: text or bin (default: bin)")

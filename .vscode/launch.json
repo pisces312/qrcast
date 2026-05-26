@@ -2,49 +2,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "V1 Generate (README.md → QR canvases)",
+            "name": "V2 Generate (README.md -> QR canvases)",
             "type": "debugpy",
             "request": "launch",
-            "module": "qrcast.bw.v1.generator",
-            "args": [
-                "${workspaceFolder}/README.md",
-                "--output-dir",
-                "./tmp"
-            ],
-            "console": "integratedTerminal",
-            "justMyCode": true
-        },
-        {
-            "name": "V1 Generate with compress",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "qrcast.bw.v1.generator",
-            "args": [
-                "${workspaceFolder}/README.md",
-                "--output-dir",
-                "./tmp",
-                "--compress"
-            ],
-            "console": "integratedTerminal",
-            "justMyCode": true
-        },
-        {
-            "name": "V1 Verify Grid",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "qrcast.bw.v1.verifier_grid",
-            "args": [
-                "./tmp",
-                "./verify_output"
-            ],
-            "console": "integratedTerminal",
-            "justMyCode": true
-        },
-        {
-            "name": "V2 Generate (README.md → QR canvases)",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "qrcast.bw.v2.generator",
+            "module": "qrcast.bw.generator",
             "args": [
                 "${workspaceFolder}/README.md",
                 "--output-dir",
@@ -57,7 +18,7 @@
             "name": "V2 Generate with compress",
             "type": "debugpy",
             "request": "launch",
-            "module": "qrcast.bw.v2.generator",
+            "module": "qrcast.bw.generator",
             "args": [
                 "${workspaceFolder}/README.md",
                 "--output-dir",
@@ -68,10 +29,10 @@
             "justMyCode": true
         },
         {
-            "name": "V2 Quick Send (env.yml → single QR)",
+            "name": "V2 Quick Send (env.yml -> single QR)",
             "type": "debugpy",
             "request": "launch",
-            "module": "qrcast.bw.v2.quick_sender",
+            "module": "qrcast.bw.quick_sender",
             "args": [
                 "${workspaceFolder}/env.yml",
                 "--ver", "20"
@@ -95,7 +56,7 @@
             "name": "V3 Generate Bin",
             "type": "debugpy",
             "request": "launch",
-            "module": "qrcast.v3.generator_bin",
+            "module": "qrcast.rgb.generator_bin",
             "args": [
                 "${workspaceFolder}/README.md",
                 "--output-dir",
@@ -108,7 +69,7 @@
             "name": "V3 Generate Text",
             "type": "debugpy",
             "request": "launch",
-            "module": "qrcast.v3.generator_text",
+            "module": "qrcast.rgb.generator_text",
             "args": [
                 "${workspaceFolder}/README.md",
                 "--output-dir",
@@ -121,7 +82,7 @@
             "name": "V3 Verify Bin",
             "type": "debugpy",
             "request": "launch",
-            "module": "qrcast.v3.verifier_bin",
+            "module": "qrcast.rgb.verifier_bin",
             "args": [
                 "./tmp",
                 "./tmp/qrgb_bin_verify_output"
@@ -133,7 +94,7 @@
             "name": "V3 Verify Text",
             "type": "debugpy",
             "request": "launch",
-            "module": "qrcast.v3.verifier_text",
+            "module": "qrcast.rgb.verifier_text",
             "args": [
                 "./tmp",
                 "./tmp/qrgb_verify_output"

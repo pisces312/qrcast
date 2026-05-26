@@ -1,1 +1,1 @@
-"""qrcast.bw - Black-and-white QR code file transfer (V1 & V2)."""
+"""qrcast v2 - Configurable QR version black-and-white file transfer."""
