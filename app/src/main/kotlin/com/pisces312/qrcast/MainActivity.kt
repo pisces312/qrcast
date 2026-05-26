@@ -311,7 +311,7 @@ class MainActivity : AppCompatActivity() {
 
         val resolutionSelector = ResolutionSelector.Builder()
             .setResolutionStrategy(ResolutionStrategy(
-                Size(960, 960),
+                Size(960, 1080),
                 ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER
             ))
             .build()
@@ -456,8 +456,16 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Capture actual camera resolution from first frame
+        // and adapt scanFrame aspect ratio to match camera
         if (analysisResolution.isEmpty()) {
-            analysisResolution = "${mediaImage.width}×${mediaImage.height}"
+            val w = mediaImage.width
+            val h = mediaImage.height
+            analysisResolution = "${w}×${h}"
+            runOnUiThread {
+                val params = scanFrame.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+                params.dimensionRatio = "$w:$h"
+                scanFrame.layoutParams = params
+            }
         }
 
         val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
@@ -475,7 +483,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 val elapsed = now - submitTime
-                scanFps.text = "%s  %.1ffps  %dms".format(analysisResolution, scanFpsValue, elapsed)
+                scanFps.text = "%s  扫描%.0ffps  解码%dms".format(analysisResolution, scanFpsValue, elapsed)
                 scanFps.visibility = View.VISIBLE
 
                 if (barcodes.isNotEmpty()) {
