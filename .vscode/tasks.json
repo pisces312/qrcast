@@ -85,13 +85,15 @@
         },
 
         {
-            "label": "B&W V2 Gen2 - big - individual",
+            "label": "Big-Single B&W V2 Gen2",
             "type": "shell",
             "command": "python",
             "args": [
                 "-m",
                 "qrcast.bw.generator2",
-                "C:\\Windows\\Web\\Wallpaper\\Windows\\img0.jpg",
+                "C:\\Windows\\Web\\Screen\\img104.jpg",//664kb                
+                // "C:\\Windows\\Web\\Wallpaper\\ThemeD\\img34.jpg",
+                // "C:\\Windows\\Web\\Wallpaper\\Windows\\img0.jpg",
                 "--ver",
                 "30",
                 "--output-dir",
@@ -103,13 +105,13 @@
         },
 
         {
-            "label": "Display QR - big - Individual",
+            "label": "Big-Single B&W V2 Show",
             "type": "shell",
             "command": "python",
             "args": [
                 "-m",
                 "qrcast.bw.display",
-                "./tmp/img0-individual",
+                "./tmp/img104-individual",
                 "-i",
                 "0.2",
                 //"--no-fullscreen"
