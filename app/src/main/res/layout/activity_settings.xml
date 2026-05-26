@@ -188,4 +188,28 @@
         android:textColor="#9E9E9E"
         android:textSize="13sp" />
 
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="32dp"
+        android:background="#333333" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="关于"
+        android:textColor="@color/white"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:lineSpacingMultiplier="1.4"
+        android:text="QRCast\n通过二维码离线传输文件\n\n开源协议: MIT License\nGitHub: github.com/pisces312/qrcast-android\n\n发送端(qrcast): github.com/pisces312/qrcast"
+        android:textColor="#9E9E9E"
+        android:textSize="13sp" />
+
 </LinearLayout>

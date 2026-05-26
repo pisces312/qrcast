@@ -452,7 +452,6 @@ class MainActivity : AppCompatActivity() {
             .addOnSuccessListener { barcodes ->
                 if (barcodes.isNotEmpty()) {
                     val elapsed = System.currentTimeMillis() - submitTime
-                    LogCollector.d(TAG, "ML Kit scan: ${barcodes.size} code(s) in ${elapsed}ms")
 
                     // Track FPS
                     if (lastDetectionTime > 0) {
@@ -594,8 +593,6 @@ class MainActivity : AppCompatActivity() {
             fileState.chunks[chunk.seq] = chunk.payload
             fileState.receivedCount = fileState.chunks.size
             hasNewChunk = true
-
-            LogCollector.d(TAG, "[$fileKey] 收到分块 ${chunk.seq + 1}/${chunk.total}")
         }
 
         if (hasNewChunk) {

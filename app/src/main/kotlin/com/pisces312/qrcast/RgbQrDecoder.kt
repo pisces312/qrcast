@@ -119,7 +119,6 @@ class RgbQrDecoder {
                     val chunk = parsePayloadV2(payload)
                     if (chunk != null) {
                         chunks.add(chunk)
-                        LogCollector.d("RgbQrDecoder", "Decoded QR at [$row,$col] seq=${chunk.seq}")
                     }
                 }
             }
@@ -260,7 +259,6 @@ class RgbQrDecoder {
             val barcodes = barcodeScanner.process(image).await()
             barcodes.firstOrNull()?.rawBytes
         } catch (e: Exception) {
-            LogCollector.d("RgbQrDecoder", "Channel decode failed: ${e.message}")
             null
         }
     }
