@@ -481,6 +481,10 @@ class ScanActivity : AppCompatActivity() {
         if (fileState.appState == AppState.ASSEMBLING) return
         fileState.appState = AppState.ASSEMBLING
 
+        // 立即停止相机，防止组装期间扫到新文件分块覆盖当前进度信息
+        // (背景进度条/文件名应保持上一轮的完成状态，直到用户处理完对话框开始新接收)
+        withContext(Dispatchers.Main) { stopCamera() }
+
         withContext(Dispatchers.IO) {
             try {
                 val sortedKeys = fileState.chunks.keys.sorted()
@@ -561,7 +565,6 @@ class ScanActivity : AppCompatActivity() {
                 LogCollector.i(TAG, "[${fileState.fileKey}] File assembled: $outName (${formatBytes(data.size.toLong())})")
 
                 withContext(Dispatchers.Main) {
-                    stopCamera()
                     updateProgress()
                     showSaveDialog(outName, data.size.toLong())
                 }

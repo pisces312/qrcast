@@ -22,8 +22,27 @@ done
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_DIR="$PROJECT_DIR/app"
-BUILD_TOOLS="D:/nili/dev/android_sdk/build-tools/34.0.0"
-KEYSTORE="D:/nili/my-git-projects/my-backup/backup-settings/my-android-release.keystore"
+
+# Android SDK / build-tools: 必须通过环境变量提供
+#   ANDROID_HOME / ANDROID_SDK_ROOT : SDK 根目录
+#   ANDROID_BUILD_TOOLS_VERSION      : build-tools 版本 (默认 34.0.0)
+ANDROID_SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+BUILD_TOOLS_VERSION="${ANDROID_BUILD_TOOLS_VERSION:-34.0.0}"
+
+if [[ -z "$ANDROID_SDK" ]]; then
+    echo "ERROR: ANDROID_HOME (or ANDROID_SDK_ROOT) env var not set"
+    exit 1
+fi
+
+BUILD_TOOLS="$ANDROID_SDK/build-tools/$BUILD_TOOLS_VERSION"
+if [[ ! -d "$BUILD_TOOLS" ]]; then
+    echo "ERROR: Android build-tools not found at: $BUILD_TOOLS"
+    echo "       Check ANDROID_HOME / ANDROID_BUILD_TOOLS_VERSION env vars."
+    exit 1
+fi
+
+# 签名密钥: 通过 KEY_STORE_LOCATION 提供 (release 构建必需)
+KEYSTORE="${KEY_STORE_LOCATION:-}"
 KEYSTORE_PASS="${KEY_STORE_PASSWORD:-}"
 KEY_ALIAS="${KEY_ALIAS:-pisces312}"
 
@@ -51,6 +70,14 @@ echo "=== Building QRCast $VERSION for $BUILD_TYPE ==="
 
 # Validate signing env vars for release
 if [[ "$BUILD_TYPE" == "release" ]]; then
+    if [[ -z "$KEYSTORE" ]]; then
+        echo "ERROR: KEY_STORE_LOCATION env var not set"
+        exit 1
+    fi
+    if [[ ! -f "$KEYSTORE" ]]; then
+        echo "ERROR: keystore not found: $KEYSTORE"
+        exit 1
+    fi
     if [[ -z "$KEYSTORE_PASS" ]]; then
         echo "ERROR: KEY_STORE_PASSWORD env var not set"
         exit 1
@@ -64,7 +91,8 @@ if [[ "$NO_MINIFY" == true ]]; then
     GRADLE_ARGS="$GRADLE_ARGS -PenableMinify=false -PenableShrinkResources=false"
     echo "=== Minify/ShrinkResources disabled ==="
 fi
-java -cp "$PROJECT_DIR/gradle/wrapper/gradle-wrapper.jar" \
+# 用相对路径 jar: git bash 下 pwd 返回 MSYS 路径 (/d/...), Windows 原生 java 无法识别
+java -cp "gradle/wrapper/gradle-wrapper.jar" \
     org.gradle.wrapper.GradleWrapperMain "$GRADLE_TASK" $GRADLE_ARGS
 
 # Find APK

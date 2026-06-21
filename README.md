@@ -59,11 +59,29 @@ The entire QR encodes raw file bytes with no chunking header. Suitable for files
 - JDK 17
 - Gradle 9.4.1
 
+环境变量 / Environment variables:
+
+| 变量 | 用途 | debug | release |
+|------|------|-------|---------|
+| `ANDROID_HOME` (或 `ANDROID_SDK_ROOT`) | SDK 根目录 | 必需 | 必需 |
+| `ANDROID_BUILD_TOOLS_VERSION` | build-tools 版本 (默认 34.0.0) | 可选 | 可选 |
+| `KEY_STORE_LOCATION` | 签名密钥路径 | — | 必需 |
+| `KEY_STORE_PASSWORD` | 密钥库密码 | — | 必需 |
+| `KEY_ALIAS` | 密钥别名 (默认 pisces312) | — | 可选 |
+
 ```bash
-./gradlew assembleDebug
+# Debug
+./build.sh debug
+
+# Release
+KEY_STORE_LOCATION=/path/to/release.keystore \
+KEY_STORE_PASSWORD=***** \
+./build.sh release
 ```
 
-APK 输出 / Output: `app/build/outputs/apk/debug/app-debug.apk`
+APK 输出 / Output:
+- Debug: `QRCast-v<version>-debug.apk`
+- Release: `QRCast-v<version>-signed.apk`
 
 ## 技术栈 / Tech Stack
 
