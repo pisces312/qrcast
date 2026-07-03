@@ -1,7 +1,6 @@
 {
     "version": "2.0.0",
     "tasks": [
-        
         {
             "label": "V3 Generate Bin",
             "type": "shell",
@@ -83,7 +82,43 @@
             ],
             "group": "test"
         },
-
+        {
+            "label": "!B&W V2 Gen and display",
+            "type": "shell",
+            "command": "D:\\dev\\conda_envs\\qrcast_env\\python.exe",
+            "args": [
+                "-m",
+                "qrcast.bw.gen_and_display_individual",
+                "C:\\Windows\\Web\\touchkeyboard\\TouchKeyboardThemeLight003.jpg",
+                // "C:\\Windows\\Web\\Screen\\img104.jpg", //664kb                
+                // "C:\\Windows\\Web\\Wallpaper\\ThemeD\\img34.jpg",
+                // "C:\\Windows\\Web\\Wallpaper\\Windows\\img0.jpg",
+                "--ver",
+                "30",
+                "--output-dir",
+                "./tmp",
+                "--interval",
+                "0.2"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "!B&W Gen - All-in-one",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "-m",
+                "qrcast.bw.gen_individual_all_in_one",
+                "C:\\Windows\\Web\\Screen\\img104.jpg", //664kb                
+                // "C:\\Windows\\Web\\Wallpaper\\ThemeD\\img34.jpg",
+                // "C:\\Windows\\Web\\Wallpaper\\Windows\\img0.jpg",
+                "--ver",
+                "30",
+                "--output-dir",
+                "./tmp"
+            ],
+            "group": "build"
+        },
         {
             "label": "Big-Single B&W V2 Gen2",
             "type": "shell",
@@ -91,7 +126,7 @@
             "args": [
                 "-m",
                 "qrcast.bw.generator2",
-                "C:\\Windows\\Web\\Screen\\img104.jpg",//664kb                
+                "C:\\Windows\\Web\\Screen\\img104.jpg", //664kb                
                 // "C:\\Windows\\Web\\Wallpaper\\ThemeD\\img34.jpg",
                 // "C:\\Windows\\Web\\Wallpaper\\Windows\\img0.jpg",
                 "--ver",
@@ -103,7 +138,6 @@
             ],
             "group": "build"
         },
-
         {
             "label": "Big-Single B&W V2 Show",
             "type": "shell",
