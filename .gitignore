@@ -58,6 +58,7 @@ pubspec.lock
 
 # IDE
 .vscode/
+!sender/.vscode/
 .idea/
 *.swp
 *.swo
