@@ -13,10 +13,10 @@
 
 ```bash
 cd sender
-# 使用项目环境：D:/nili/dev/conda_envs/qrcast_env/python.exe -m pip install -e .
+# 使用项目环境：D:/dev/conda_envs/qrcast_env/python.exe -m pip install -e .
 
 # 生成并显示二维码（一键发送）
-D:/nili/dev/conda_envs/qrcast_env/python.exe -m qrcast.bw.gen_and_display_individual myfile.zip --ver 30 --interval 0.2
+D:/dev/conda_envs/qrcast_env/python.exe -m qrcast.bw.gen_and_display_individual myfile.zip --ver 30 --interval 0.2
 ```
 
 ### Receiver (Android)

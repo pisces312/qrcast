@@ -7,25 +7,23 @@
 ## 全局环境
 
 ### 工具路径
-- Git: `C:\nili\dev\git`
-- Conda: `C:\nili\dev\miniconda3`
-- Android SDK: `D:\nili\dev\android_sdk`
-- JDK: `D:\nili\dev\AndroidStudio\jbr` (JBR 21, Java 17)
-- Flutter SDK: `D:\nili\dev\flutter`
+- Git, Conda: 在 PATH 中，直接使用
+- Android SDK: `%ANDROID_SDK%`
+- JDK: Android Studio 内置 JBR 21 (Java 17)
 
 ---
 
 ## Sender (Python)
 
 ### 环境
-- Python: `D:\nili\dev\conda_envs\qrcast_env\python.exe` (conda env: qrcast_env, Python 3.11)
+- Python: `D:\dev\conda_envs\qrcast_env\python.exe` (conda env: qrcast_env, Python 3.11)
 - 所有脚本、测试和 CLI 命令必须使用该 Python，而非系统/conda-base python
 - 工作目录: `D:/my-projects/qrcast`
 
 ### 命令
-- 安装依赖: `D:/nili/dev/conda_envs/qrcast_env/python.exe -s -m pip install <pkg>`
-- 运行测试: `D:/nili/dev/conda_envs/qrcast_env/python.exe -s -m pytest tests/ -v`
-- 生成 + 显示: `D:/nili/dev/conda_envs/qrcast_env/python.exe -m qrcast.bw.gen_and_display_individual`
+- 安装依赖: `D:/dev/conda_envs/qrcast_env/python.exe -s -m pip install <pkg>`
+- 运行测试: `D:/dev/conda_envs/qrcast_env/python.exe -s -m pytest tests/ -v`
+- 生成 + 显示: `D:/dev/conda_envs/qrcast_env/python.exe -m qrcast.bw.gen_and_display_individual`
 
 ### 项目结构
 ```
@@ -65,34 +63,34 @@ qrcast/
 #### 1. 一键发送（推荐）
 ```bash
 # 边生成边全屏播放，5 fps，适合手机接收
-D:/nili/dev/conda_envs/qrcast_env/python.exe -m qrcast.bw.gen_and_display_individual myfile.zip --ver 30 --interval 0.2
+D:/dev/conda_envs/qrcast_env/python.exe -m qrcast.bw.gen_and_display_individual myfile.zip --ver 30 --interval 0.2
 
 # 启用 7z 压缩后再编码
-D:/nili/dev/conda_envs/qrcast_env/python.exe -m qrcast.bw.gen_and_display_individual myfile.zip --ver 30 --interval 0.2 --compress
+D:/dev/conda_envs/qrcast_env/python.exe -m qrcast.bw.gen_and_display_individual myfile.zip --ver 30 --interval 0.2 --compress
 ```
 
 #### 2. 分步：生成 → 显示
 ```bash
 # 生成 QR 序列到 ./tmp/myfile-individual/
-D:/nili/dev/conda_envs/qrcast_env/python.exe -m qrcast.bw.gen_individual_all_in_one myfile.zip --ver 20 --output-dir ./tmp
+D:/dev/conda_envs/qrcast_env/python.exe -m qrcast.bw.gen_individual_all_in_one myfile.zip --ver 20 --output-dir ./tmp
 
 # 全屏播放（0.5 秒/帧）
-D:/nili/dev/conda_envs/qrcast_env/python.exe -m qrcast.bw.display ./tmp/myfile-individual --interval 0.5
+D:/dev/conda_envs/qrcast_env/python.exe -m qrcast.bw.display ./tmp/myfile-individual --interval 0.5
 ```
 
 #### 3. 小文件单 QR 码快速发送
 ```bash
-D:/nili/dev/conda_envs/qrcast_env/python.exe -m qrcast.bw.quick_sender myfile.txt
+D:/dev/conda_envs/qrcast_env/python.exe -m qrcast.bw.quick_sender myfile.txt
 ```
 
 #### 4. 接收端（摄像头）
 ```bash
-D:/nili/dev/conda_envs/qrcast_env/python.exe -m qrcast.bw.receiver2
+D:/dev/conda_envs/qrcast_env/python.exe -m qrcast.bw.receiver2
 ```
 
 #### 5. 验证与重建
 ```bash
-D:/nili/dev/conda_envs/qrcast_env/python.exe -m qrcast.bw.verifier2 ./tmp/myfile-individual --output ./output/myfile.zip
+D:/dev/conda_envs/qrcast_env/python.exe -m qrcast.bw.verifier2 ./tmp/myfile-individual --output ./output/myfile.zip
 ```
 
 ### 依赖说明
@@ -110,7 +108,7 @@ D:/nili/dev/conda_envs/qrcast_env/python.exe -m qrcast.bw.verifier2 ./tmp/myfile
 - 工作目录: `receiver-android/`
 
 ### 签名配置
-- 默认密钥: `D:\nili\my-git-projects\my-backup\backup-settings\my-android-release.keystore`
+- 默认密钥: `D:\my-projects\my-backup\backup-settings\my-android-release.keystore`
 - alias: `pisces312`
 - 密码: `******`
 
