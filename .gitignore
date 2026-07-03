@@ -19,26 +19,54 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-
-# Virtual environments
-venv/
-ENV/
+.pytest_cache/
+.venv/
 env/
+venv/
+tmp/
+
+# Android
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+/captures/
+.externalNativeBuild
+.cxx
+*.apk
+*.ap_
+*.aab
+*.idsig
+.kotlin/
+
+# Flutter
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+flutter_*.png
+*.lock
+pubspec.lock
+
+# Dart
+.dart_tool/
+.packages
+.pub/
 
 # IDE
-#.vscode/
+.vscode/
 .idea/
 *.swp
 *.swo
 *~
-.workbuddy
+.workbuddy/
+*.ipr
+*.iws
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Project output (matched at any directory level)
-tmp/
+# Build output
 output/
 verify_output/
 qrgb_verify_output/
@@ -48,7 +76,19 @@ qrgb_bin_receive_output/
 test_capture_output/
 frames/
 legacy/
-*.7z
+
+# Local configuration (secrets, api keys, etc.)
+.env
+.env.*
+*.env
+
+# Log files
+*.log
+debug.log
+
+# OS
+.DS_Store
+Thumbs.db
 
 # Misc
-*.log
+*.7z

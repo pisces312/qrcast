@@ -2,22 +2,31 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "Python: Run all tests",
+            "type": "shell",
+            "command": "D:/nili/dev/conda_envs/qrcast_env/python.exe -m pytest tests/ -v",
+            "cwd": "${workspaceFolder}/sender",
+            "group": "sender",
+            "problemMatcher": []
+        },
+        {
             "label": "V3 Generate Bin",
             "type": "shell",
-            "command": "D:\\nili\\dev\\conda_envs\\qrcast_env\\python.exe",
+            "command": "D:/nili/dev/conda_envs/qrcast_env/python.exe",
             "args": [
                 "-m",
                 "qrcast.rgb.generator_bin",
-                "C:\\nili\\dev\\git\\bin\\bash.exe",
+                "C:/nili/dev/git/bin/bash.exe",
                 "--output-dir",
                 "./tmp"
             ],
-            "group": "build"
+            "cwd": "${workspaceFolder}/sender",
+            "group": "sender"
         },
         {
             "label": "V3 Generate Bin2 (configurable ver)",
             "type": "shell",
-            "command": "D:\\nili\\dev\\conda_envs\\qrcast_env\\python.exe",
+            "command": "D:/nili/dev/conda_envs/qrcast_env/python.exe",
             "args": [
                 "-m",
                 "qrcast.rgb.generator_bin2",
@@ -27,12 +36,13 @@
                 "--output-dir",
                 "./tmp"
             ],
-            "group": "build"
+            "cwd": "${workspaceFolder}/sender",
+            "group": "sender"
         },
         {
             "label": "V3 Generate Text",
             "type": "shell",
-            "command": "python",
+            "command": "D:/nili/dev/conda_envs/qrcast_env/python.exe",
             "args": [
                 "-m",
                 "qrcast.rgb.generator_text",
@@ -40,12 +50,13 @@
                 "--output-dir",
                 "./tmp"
             ],
-            "group": "build"
+            "cwd": "${workspaceFolder}/sender",
+            "group": "sender"
         },
         {
             "label": "V3 Verify Bin",
             "type": "shell",
-            "command": "D:\\nili\\dev\\conda_envs\\qrcast_env\\python.exe",
+            "command": "D:/nili/dev/conda_envs/qrcast_env/python.exe",
             "args": [
                 "-m",
                 "qrcast.rgb.verifier_bin",
@@ -54,45 +65,45 @@
                 "--ver",
                 "20"
             ],
-            "group": "test"
+            "cwd": "${workspaceFolder}/sender",
+            "group": "sender"
         },
         {
             "label": "V3 Verify Text",
             "type": "shell",
-            "command": "D:\\nili\\dev\\conda_envs\\qrcast_env\\python.exe",
+            "command": "D:/nili/dev/conda_envs/qrcast_env/python.exe",
             "args": [
                 "-m",
                 "qrcast.rgb.verifier_text",
                 "./tmp",
                 "./tmp/qrgb_verify_output"
             ],
-            "group": "test"
+            "cwd": "${workspaceFolder}/sender",
+            "group": "sender"
         },
         {
             "label": "V3 Verify Bin2",
             "type": "shell",
-            "command": "python",
+            "command": "D:/nili/dev/conda_envs/qrcast_env/python.exe",
             "args": [
                 "-m",
-                "qrcast.v3.verifier_bin2",
+                "qrcast.rgb.verifier_bin2",
                 "./tmp",
                 "./tmp/qrgb_bin_verify_output",
                 "--ver",
                 "20"
             ],
-            "group": "test"
+            "cwd": "${workspaceFolder}/sender",
+            "group": "sender"
         },
         {
             "label": "!B&W V2 Gen and display",
             "type": "shell",
-            "command": "D:\\dev\\conda_envs\\qrcast_env\\python.exe",
+            "command": "D:/nili/dev/conda_envs/qrcast_env/python.exe",
             "args": [
                 "-m",
                 "qrcast.bw.gen_and_display_individual",
-                "C:\\Windows\\Web\\touchkeyboard\\TouchKeyboardThemeLight003.jpg",
-                // "C:\\Windows\\Web\\Screen\\img104.jpg", //664kb                
-                // "C:\\Windows\\Web\\Wallpaper\\ThemeD\\img34.jpg",
-                // "C:\\Windows\\Web\\Wallpaper\\Windows\\img0.jpg",
+                "C:/Windows/Web/touchkeyboard/TouchKeyboardThemeLight003.jpg",
                 "--ver",
                 "30",
                 "--output-dir",
@@ -100,35 +111,33 @@
                 "--interval",
                 "0.2"
             ],
-            "group": "build"
+            "cwd": "${workspaceFolder}/sender",
+            "group": "sender"
         },
         {
             "label": "!B&W Gen - All-in-one",
             "type": "shell",
-            "command": "python",
+            "command": "D:/nili/dev/conda_envs/qrcast_env/python.exe",
             "args": [
                 "-m",
                 "qrcast.bw.gen_individual_all_in_one",
-                "C:\\Windows\\Web\\Screen\\img104.jpg", //664kb                
-                // "C:\\Windows\\Web\\Wallpaper\\ThemeD\\img34.jpg",
-                // "C:\\Windows\\Web\\Wallpaper\\Windows\\img0.jpg",
+                "C:/Windows/Web/Screen/img104.jpg",
                 "--ver",
                 "30",
                 "--output-dir",
                 "./tmp"
             ],
-            "group": "build"
+            "cwd": "${workspaceFolder}/sender",
+            "group": "sender"
         },
         {
             "label": "Big-Single B&W V2 Gen2",
             "type": "shell",
-            "command": "python",
+            "command": "D:/nili/dev/conda_envs/qrcast_env/python.exe",
             "args": [
                 "-m",
                 "qrcast.bw.generator2",
-                "C:\\Windows\\Web\\Screen\\img104.jpg", //664kb                
-                // "C:\\Windows\\Web\\Wallpaper\\ThemeD\\img34.jpg",
-                // "C:\\Windows\\Web\\Wallpaper\\Windows\\img0.jpg",
+                "C:/Windows/Web/Screen/img104.jpg",
                 "--ver",
                 "30",
                 "--output-dir",
@@ -136,26 +145,27 @@
                 "--mode",
                 "individual"
             ],
-            "group": "build"
+            "cwd": "${workspaceFolder}/sender",
+            "group": "sender"
         },
         {
             "label": "Big-Single B&W V2 Show",
             "type": "shell",
-            "command": "python",
+            "command": "D:/nili/dev/conda_envs/qrcast_env/python.exe",
             "args": [
                 "-m",
                 "qrcast.bw.display",
                 "./tmp/img104-individual",
                 "-i",
-                "0.2",
-                //"--no-fullscreen"
+                "0.2"
             ],
-            "group": "build"
+            "cwd": "${workspaceFolder}/sender",
+            "group": "sender"
         },
         {
             "label": "B&W V2 Gen2 - individual",
             "type": "shell",
-            "command": "python",
+            "command": "D:/nili/dev/conda_envs/qrcast_env/python.exe",
             "args": [
                 "-m",
                 "qrcast.bw.generator2",
@@ -167,12 +177,13 @@
                 "--mode",
                 "individual"
             ],
-            "group": "build"
+            "cwd": "${workspaceFolder}/sender",
+            "group": "sender"
         },
         {
             "label": "B&W V2 Generate2",
             "type": "shell",
-            "command": "python",
+            "command": "D:/nili/dev/conda_envs/qrcast_env/python.exe",
             "args": [
                 "-m",
                 "qrcast.bw.generator2",
@@ -182,12 +193,13 @@
                 "--output-dir",
                 "./tmp"
             ],
-            "group": "build"
+            "cwd": "${workspaceFolder}/sender",
+            "group": "sender"
         },
         {
             "label": "B&W V2 Receive2",
             "type": "shell",
-            "command": "python",
+            "command": "D:/nili/dev/conda_envs/qrcast_env/python.exe",
             "args": [
                 "-m",
                 "qrcast.bw.receiver2",
@@ -196,44 +208,63 @@
                 "--ver",
                 "20"
             ],
-            "group": "test"
+            "cwd": "${workspaceFolder}/sender",
+            "group": "sender"
         },
         {
             "label": "B&W V2 Verify2",
             "type": "shell",
-            "command": "python",
+            "command": "D:/nili/dev/conda_envs/qrcast_env/python.exe",
             "args": [
                 "-m",
                 "qrcast.bw.verifier2",
                 "./tmp",
                 "./tmp/verify_output"
             ],
-            "group": "test"
+            "cwd": "${workspaceFolder}/sender",
+            "group": "sender"
         },
         {
             "label": "Display QR Canvases",
             "type": "shell",
-            "command": "python",
+            "command": "D:/nili/dev/conda_envs/qrcast_env/python.exe",
             "args": [
                 "-m",
                 "qrcast.common",
                 "./tmp"
             ],
-            "group": "build"
+            "cwd": "${workspaceFolder}/sender",
+            "group": "sender"
         },
         {
             "label": "Display QR Individual",
             "type": "shell",
-            "command": "python",
+            "command": "D:/nili/dev/conda_envs/qrcast_env/python.exe",
             "args": [
                 "-m",
                 "qrcast.bw.display",
                 "./tmp/README-individual",
                 "-i",
-                "0.1",
-                //"--no-fullscreen"
+                "0.1"
             ],
-            "group": "build"
+            "cwd": "${workspaceFolder}/sender",
+            "group": "sender"
+        },
+        {
+            "label": "Android: Build debug",
+            "type": "shell",
+            "command": "./gradlew assembleDebug",
+            "cwd": "${workspaceFolder}/receiver-android",
+            "group": "receiver-android",
+            "problemMatcher": []
+        },
+        {
+            "label": "Android: Build release",
+            "type": "shell",
+            "command": "./gradlew assembleRelease",
+            "cwd": "${workspaceFolder}/receiver-android",
+            "group": "receiver-android",
+            "problemMatcher": []
         }
     ]
 }
