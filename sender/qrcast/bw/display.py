@@ -18,6 +18,32 @@ import numpy as np
 from PIL import Image
 
 
+def _get_screen_size():
+    """Get primary screen resolution via ctypes (Windows)."""
+    try:
+        import ctypes
+        user32 = ctypes.windll.user32
+        return user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+    except Exception:
+        return 1920, 1080  # fallback
+
+
+def _fit_square_to_screen(cv_img, screen_w, screen_h):
+    """Scale image to 1:1 square filling screen height, centered on black bg."""
+    img_h, img_w = cv_img.shape[:2]
+    target_size = screen_h
+    scale = target_size / max(img_h, img_w)
+    new_w = int(img_w * scale)
+    new_h = int(img_h * scale)
+    resized = cv2.resize(cv_img, (new_w, new_h), interpolation=cv2.INTER_NEAREST)
+
+    canvas = np.zeros((screen_h, screen_w, 3), dtype=np.uint8)
+    x_off = (screen_w - new_w) // 2
+    y_off = (screen_h - new_h) // 2
+    canvas[y_off:y_off + new_h, x_off:x_off + new_w] = resized
+    return canvas
+
+
 def _make_countdown_frame(text, width, height):
     """Create a black frame with centered white text."""
     frame = np.zeros((height, width, 3), dtype=np.uint8)
@@ -52,6 +78,7 @@ def display_individual_qr(image_dir, interval=0.5, pattern="qr_*.png", window_na
     print(f"Display interval: {interval}s per image (~{total * interval:.1f}s total)")
     print("Press 'q' to quit, any other key to advance immediately.\n")
 
+    screen_w, screen_h = _get_screen_size()
     cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
     if fullscreen:
         cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -59,16 +86,8 @@ def display_individual_qr(image_dir, interval=0.5, pattern="qr_*.png", window_na
         cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
 
     # Countdown 3-2-1 before starting
-    screen_w = cv2.getWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN)  # just to get window
-    # Use a reasonable canvas size for countdown text
-    first_img = cv2.imread(files[0])
-    if first_img is not None:
-        ch, cw = first_img.shape[:2]
-    else:
-        cw, ch = 800, 600
-
     for count in range(3, 0, -1):
-        frame = _make_countdown_frame(str(count), cw, ch)
+        frame = _make_countdown_frame(str(count), screen_w, screen_h)
         cv2.imshow(window_name, frame)
         key = cv2.waitKey(1000) & 0xFF
         if key == ord("q"):
@@ -84,6 +103,9 @@ def display_individual_qr(image_dir, interval=0.5, pattern="qr_*.png", window_na
         if img is None:
             print(f"Warning: could not read {filepath}, skipping")
             continue
+
+        if fullscreen:
+            img = _fit_square_to_screen(img, screen_w, screen_h)
 
         last_idx = idx
         elapsed = time.monotonic() - start_time

@@ -152,6 +152,35 @@ def _show_countdown(window_name, seconds=3):
     cv2.waitKey(500)
 
 
+def _get_screen_size():
+    """Get primary screen resolution via ctypes (Windows)."""
+    try:
+        import ctypes
+        user32 = ctypes.windll.user32
+        return user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+    except Exception:
+        return 1920, 1080  # fallback
+
+
+def _fit_square_to_screen(cv_img, screen_w, screen_h):
+    """Scale image to 1:1 square filling screen height, centered on black bg."""
+    img_h, img_w = cv_img.shape[:2]
+    # Target: square filling height
+    target_size = screen_h
+    # Scale to target size preserving aspect ratio (source is already ~square)
+    scale = target_size / max(img_h, img_w)
+    new_w = int(img_w * scale)
+    new_h = int(img_h * scale)
+    resized = cv2.resize(cv_img, (new_w, new_h), interpolation=cv2.INTER_NEAREST)
+
+    # Black canvas, center the QR
+    canvas = np.zeros((screen_h, screen_w, 3), dtype=np.uint8)
+    x_off = (screen_w - new_w) // 2
+    y_off = (screen_h - new_h) // 2
+    canvas[y_off:y_off + new_h, x_off:x_off + new_w] = resized
+    return canvas
+
+
 def _consumer(q, stop_event, interval):
     """Pull QR images from queue and display them via OpenCV.
 
@@ -160,6 +189,7 @@ def _consumer(q, stop_event, interval):
         stop_event: Set by consumer itself on 'q' key to signal producer.
         interval: Seconds to display each frame.
     """
+    screen_w, screen_h = _get_screen_size()
     window_name = "QRCast — Gen & Display"
     cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
     cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -179,8 +209,9 @@ def _consumer(q, stop_event, interval):
 
         chunk_idx, total, pil_img, save_path = item
 
-        # Convert PIL to OpenCV format
+        # Convert PIL to OpenCV format, fit as 1:1 square on screen
         cv_img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+        cv_img = _fit_square_to_screen(cv_img, screen_w, screen_h)
 
         if first_frame:
             _show_countdown(window_name)
