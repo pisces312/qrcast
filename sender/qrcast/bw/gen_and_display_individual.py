@@ -234,14 +234,9 @@ def _consumer(q, stop_event, interval):
         displayed += 1
 
         if key == ord("q"):
-            print("\n[!] 'q' pressed — stopping display. Producer will finish current chunk.")
-            stop_event.set()
-            # Drain remaining items from queue so producer doesn't block
-            try:
-                q.get_nowait()
-            except queue.Empty:
-                pass
-            break
+            print("\n[!] 'q' pressed — exiting.")
+            cv2.destroyAllWindows()
+            os._exit(0)
 
     cv2.destroyAllWindows()
 
