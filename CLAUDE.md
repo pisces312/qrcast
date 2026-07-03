@@ -108,9 +108,10 @@ D:/dev/conda_envs/qrcast_env/python.exe -m qrcast.bw.verifier2 ./tmp/myfile-indi
 - 工作目录: `receiver-android/`
 
 ### 签名配置
-- 默认密钥: `D:\my-projects\my-backup\backup-settings\my-android-release.keystore`
-- alias: `pisces312`
-- 密码: `******`
+通过环境变量传入，不硬编码：
+- `KEY_STORE_LOCATION`: keystore 路径
+- `KEY_STORE_PASSWORD`: 密码
+- `KEY_ALIAS`: alias（默认 `pisces312`）
 
 ### 命令
 - Debug 构建: `cd receiver-android && ./gradlew assembleDebug`
