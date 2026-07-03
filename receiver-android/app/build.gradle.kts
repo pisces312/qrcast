@@ -11,7 +11,7 @@ kotlin {
 
 android {
     namespace = "com.pisces312.qrcast"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -22,7 +22,7 @@ android {
     defaultConfig {
         applicationId = "com.pisces312.qrcast"
         minSdk = 21
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 5
         versionName = "1.0.4"
     }

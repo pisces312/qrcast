@@ -104,8 +104,8 @@ D:/nili/dev/conda_envs/qrcast_env/python.exe -m qrcast.bw.verifier2 ./tmp/myfile
 ## Receiver (Android)
 
 ### 环境
-- compileSdk: 35
-- AGP: 8.9.1, Gradle: 9.4.1, Kotlin: 2.1.0
+- compileSdk: 36
+- AGP: 8.10.1, Gradle: 9.4.1, Kotlin: 2.2.0
 - NDK: 27.0.12077973
 - 工作目录: `receiver-android/`
 
