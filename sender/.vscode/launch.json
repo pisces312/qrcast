@@ -11,6 +11,7 @@
                 "--output-dir",
                 "./tmp"
             ],
+            "cwd": "${workspaceFolder}/sender",
             "console": "integratedTerminal",
             "justMyCode": true
         },
@@ -25,6 +26,7 @@
                 "./tmp",
                 "--compress"
             ],
+            "cwd": "${workspaceFolder}/sender",
             "console": "integratedTerminal",
             "justMyCode": true
         },
@@ -37,6 +39,7 @@
                 "${workspaceFolder}/env.yml",
                 "--ver", "20"
             ],
+            "cwd": "${workspaceFolder}/sender",
             "console": "integratedTerminal",
             "justMyCode": true
         },
@@ -49,6 +52,7 @@
                 "./tmp",
                 "./tmp/verify_output"
             ],
+            "cwd": "${workspaceFolder}/sender",
             "console": "integratedTerminal",
             "justMyCode": true
         },
@@ -62,6 +66,7 @@
                 "--output-dir",
                 "./tmp"
             ],
+            "cwd": "${workspaceFolder}/sender",
             "console": "integratedTerminal",
             "justMyCode": true
         },
@@ -75,6 +80,7 @@
                 "--output-dir",
                 "./tmp"
             ],
+            "cwd": "${workspaceFolder}/sender",
             "console": "integratedTerminal",
             "justMyCode": true
         },
@@ -87,6 +93,7 @@
                 "./tmp",
                 "./tmp/qrgb_bin_verify_output"
             ],
+            "cwd": "${workspaceFolder}/sender",
             "console": "integratedTerminal",
             "justMyCode": true
         },
@@ -99,6 +106,7 @@
                 "./tmp",
                 "./tmp/qrgb_verify_output"
             ],
+            "cwd": "${workspaceFolder}/sender",
             "console": "integratedTerminal",
             "justMyCode": true
         },
@@ -110,6 +118,7 @@
             "args": [
                 "./tmp"
             ],
+            "cwd": "${workspaceFolder}/sender",
             "console": "integratedTerminal",
             "justMyCode": true
         }

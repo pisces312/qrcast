@@ -4,7 +4,7 @@
         {
             "label": "Python: Run all tests",
             "type": "shell",
-            "command": "D:/dev/conda_envs/qrcast_env/python.exe -m pytest tests/ -v",
+            "command": "D:/dev/miniconda3/python.exe -m pytest tests/ -v",
             "cwd": "${workspaceFolder}/sender",
             "group": "sender",
             "problemMatcher": []
@@ -12,7 +12,7 @@
         {
             "label": "V3 Generate Bin",
             "type": "shell",
-            "command": "D:/dev/conda_envs/qrcast_env/python.exe",
+            "command": "D:/dev/miniconda3/python.exe",
             "args": [
                 "-m",
                 "qrcast.rgb.generator_bin",
@@ -26,7 +26,7 @@
         {
             "label": "V3 Generate Bin2 (configurable ver)",
             "type": "shell",
-            "command": "D:/dev/conda_envs/qrcast_env/python.exe",
+            "command": "D:/dev/miniconda3/python.exe",
             "args": [
                 "-m",
                 "qrcast.rgb.generator_bin2",
@@ -42,7 +42,7 @@
         {
             "label": "V3 Generate Text",
             "type": "shell",
-            "command": "D:/dev/conda_envs/qrcast_env/python.exe",
+            "command": "D:/dev/miniconda3/python.exe",
             "args": [
                 "-m",
                 "qrcast.rgb.generator_text",
@@ -56,7 +56,7 @@
         {
             "label": "V3 Verify Bin",
             "type": "shell",
-            "command": "D:/dev/conda_envs/qrcast_env/python.exe",
+            "command": "D:/dev/miniconda3/python.exe",
             "args": [
                 "-m",
                 "qrcast.rgb.verifier_bin",
@@ -71,7 +71,7 @@
         {
             "label": "V3 Verify Text",
             "type": "shell",
-            "command": "D:/dev/conda_envs/qrcast_env/python.exe",
+            "command": "D:/dev/miniconda3/python.exe",
             "args": [
                 "-m",
                 "qrcast.rgb.verifier_text",
@@ -84,7 +84,7 @@
         {
             "label": "V3 Verify Bin2",
             "type": "shell",
-            "command": "D:/dev/conda_envs/qrcast_env/python.exe",
+            "command": "D:/dev/miniconda3/python.exe",
             "args": [
                 "-m",
                 "qrcast.rgb.verifier_bin2",
@@ -99,7 +99,7 @@
         {
             "label": "!B&W V2 Gen and display",
             "type": "shell",
-            "command": "D:/dev/conda_envs/qrcast_env/python.exe",
+            "command": "D:/dev/miniconda3/python.exe",
             "args": [
                 "-m",
                 "qrcast.bw.gen_and_display_individual",
@@ -117,7 +117,7 @@
         {
             "label": "!B&W Gen - All-in-one",
             "type": "shell",
-            "command": "D:/dev/conda_envs/qrcast_env/python.exe",
+            "command": "D:/dev/miniconda3/python.exe",
             "args": [
                 "-m",
                 "qrcast.bw.gen_individual_all_in_one",
@@ -133,7 +133,7 @@
         {
             "label": "Big-Single B&W V2 Gen2",
             "type": "shell",
-            "command": "D:/dev/conda_envs/qrcast_env/python.exe",
+            "command": "D:/dev/miniconda3/python.exe",
             "args": [
                 "-m",
                 "qrcast.bw.generator2",
@@ -151,7 +151,7 @@
         {
             "label": "Big-Single B&W V2 Show",
             "type": "shell",
-            "command": "D:/dev/conda_envs/qrcast_env/python.exe",
+            "command": "D:/dev/miniconda3/python.exe",
             "args": [
                 "-m",
                 "qrcast.bw.display",
@@ -165,7 +165,7 @@
         {
             "label": "B&W V2 Gen2 - individual",
             "type": "shell",
-            "command": "D:/dev/conda_envs/qrcast_env/python.exe",
+            "command": "D:/dev/miniconda3/python.exe",
             "args": [
                 "-m",
                 "qrcast.bw.generator2",
@@ -183,7 +183,7 @@
         {
             "label": "B&W V2 Generate2",
             "type": "shell",
-            "command": "D:/dev/conda_envs/qrcast_env/python.exe",
+            "command": "D:/dev/miniconda3/python.exe",
             "args": [
                 "-m",
                 "qrcast.bw.generator2",
@@ -199,7 +199,7 @@
         {
             "label": "B&W V2 Receive2",
             "type": "shell",
-            "command": "D:/dev/conda_envs/qrcast_env/python.exe",
+            "command": "D:/dev/miniconda3/python.exe",
             "args": [
                 "-m",
                 "qrcast.bw.receiver2",
@@ -214,7 +214,7 @@
         {
             "label": "B&W V2 Verify2",
             "type": "shell",
-            "command": "D:/dev/conda_envs/qrcast_env/python.exe",
+            "command": "D:/dev/miniconda3/python.exe",
             "args": [
                 "-m",
                 "qrcast.bw.verifier2",
@@ -227,7 +227,7 @@
         {
             "label": "Display QR Canvases",
             "type": "shell",
-            "command": "D:/dev/conda_envs/qrcast_env/python.exe",
+            "command": "D:/dev/miniconda3/python.exe",
             "args": [
                 "-m",
                 "qrcast.common",
@@ -239,7 +239,7 @@
         {
             "label": "Display QR Individual",
             "type": "shell",
-            "command": "D:/dev/conda_envs/qrcast_env/python.exe",
+            "command": "D:/dev/miniconda3/python.exe",
             "args": [
                 "-m",
                 "qrcast.bw.display",
