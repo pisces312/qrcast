@@ -12,7 +12,6 @@ kotlin {
 android {
     namespace = "com.pisces312.qrcast"
     compileSdk = 36
-    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
